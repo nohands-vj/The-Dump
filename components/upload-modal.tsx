@@ -6,7 +6,7 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import type { DumpItem } from "@/app/page"
-import Image from "next/image"
+import { compressAndUploadImage, saveDumpObject } from "@/lib/storage"
 
 interface UploadModalProps {
   open: boolean
@@ -141,38 +141,46 @@ export function UploadModal({ open, onClose, onAddObjects, existingCount }: Uplo
   const handleAddToDisplay = async () => {
     setIsAnalyzing(true)
 
-    const newObjects: DumpItem[] = await Promise.all(
-      files.map(async (file, index) => {
-        const reader = new FileReader()
-        const imageUrl = await new Promise<string>((resolve) => {
-          reader.onload = (e) => resolve(e.target?.result as string)
-          reader.readAsDataURL(file)
-        })
+    try {
+      const newObjects: DumpItem[] = await Promise.all(
+        files.map(async (file, index) => {
+          // Upload image to Firebase Storage and get URL
+          const fileName = `${Date.now()}-${index}-${file.name}`
+          const imageUrl = await compressAndUploadImage(file, fileName)
 
-        const metadata = generateMetadata(file.name)
+          const metadata = generateMetadata(file.name)
 
-        const globalIndex = existingCount + index
-        const homePosition = getNaturalPilePosition(metadata.size, globalIndex)
+          const globalIndex = existingCount + index
+          const homePosition = getNaturalPilePosition(metadata.size, globalIndex)
 
-        const baseZIndex = Math.floor(1000 - homePosition.y)
+          const baseZIndex = Math.floor(1000 - homePosition.y)
 
-        return {
-          id: `${Date.now()}-${index}`,
-          imageUrl,
-          ...metadata,
-          position: homePosition,
-          homePosition,
-          rotation: (Math.random() - 0.5) * 24,
-          zIndex: baseZIndex,
-        }
-      }),
-    )
+          const newObject: DumpItem = {
+            id: `${Date.now()}-${index}`,
+            imageUrl,
+            ...metadata,
+            position: homePosition,
+            homePosition,
+            rotation: (Math.random() - 0.5) * 24,
+            zIndex: baseZIndex,
+          }
 
-    onAddObjects(newObjects)
-    setFiles([])
-    setPreviews([])
-    setIsAnalyzing(false)
-    onClose()
+          // Save to Firestore
+          const firestoreId = await saveDumpObject(newObject)
+          return { ...newObject, firestoreId }
+        }),
+      )
+
+      onAddObjects(newObjects)
+      setFiles([])
+      setPreviews([])
+      setIsAnalyzing(false)
+      onClose()
+    } catch (error) {
+      console.error('Failed to add objects:', error)
+      alert('Failed to add objects. Please check your Firebase configuration.')
+      setIsAnalyzing(false)
+    }
   }
 
   return (

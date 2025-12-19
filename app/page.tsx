@@ -7,8 +7,8 @@ import { InventoryModal } from "@/components/inventory-modal"
 import { DetailModal } from "@/components/detail-modal"
 import { CollectionBag } from "@/components/collection-bag"
 import { DumpTruckIcon } from "@/components/icons/dump-truck"
-import { AmbientSoundPlayer } from "@/components/ambient-sound-player"
 import { RelaxMode } from "@/components/relax-mode"
+import { getAllDumpObjects, updateDumpObjectPosition, deleteDumpObject } from "@/lib/storage"
 
 export interface DumpItem {
   id: string
@@ -24,6 +24,7 @@ export interface DumpItem {
   rotation: number
   zIndex: number
   homePosition: { x: number; y: number } // Add home position for return animation
+  firestoreId?: string // Firestore document ID for syncing
 }
 
 export default function Home() {
@@ -39,21 +40,32 @@ export default function Home() {
   const [isRelaxMode, setIsRelaxMode] = useState(false)
 
   useEffect(() => {
-    const saved = localStorage.getItem("dumpObjects")
-    if (saved) {
-      setObjects(JSON.parse(saved))
+    // Load objects from Firestore on mount
+    const loadObjects = async () => {
+      try {
+        const firestoreObjects = await getAllDumpObjects()
+        setObjects(firestoreObjects)
+      } catch (error) {
+        console.error('Failed to load objects from Firestore:', error)
+        // Fallback to localStorage if Firebase fails
+        const saved = localStorage.getItem("dumpObjects")
+        if (saved) {
+          setObjects(JSON.parse(saved))
+        }
+      }
     }
+
+    loadObjects()
+
+    // Load collection bag from localStorage (not critical data)
     const savedBag = localStorage.getItem("collectionBag")
     if (savedBag) {
       setCollectionBag(JSON.parse(savedBag))
     }
   }, [])
 
-  useEffect(() => {
-    if (objects.length > 0) {
-      localStorage.setItem("dumpObjects", JSON.stringify(objects))
-    }
-  }, [objects])
+  // Objects are now stored in Firestore, not localStorage
+  // No need to sync on every change - individual operations handle Firestore updates
 
   useEffect(() => {
     localStorage.setItem("collectionBag", JSON.stringify(collectionBag))
@@ -86,15 +98,37 @@ export default function Home() {
     setObjects((prev) => [...prev, ...newObjects])
   }
 
-  const handleDeleteObject = (id: string) => {
+  const handleDeleteObject = async (id: string) => {
+    const objectToDelete = objects.find((obj) => obj.id === id)
+
+    // Delete from Firestore if it has a firestoreId
+    if (objectToDelete?.firestoreId) {
+      try {
+        await deleteDumpObject(objectToDelete.firestoreId)
+      } catch (error) {
+        console.error('Failed to delete from Firestore:', error)
+      }
+    }
+
+    // Update local state
     setObjects((prev) => prev.filter((obj) => obj.id !== id))
     setCollectionBag((prev) => prev.filter((obj) => obj.id !== id))
   }
 
-  const handleClearDump = () => {
+  const handleClearDump = async () => {
+    // Delete all objects from Firestore
+    try {
+      const deletePromises = objects
+        .filter((obj) => obj.firestoreId)
+        .map((obj) => deleteDumpObject(obj.firestoreId!))
+      await Promise.all(deletePromises)
+    } catch (error) {
+      console.error('Failed to clear Firestore:', error)
+    }
+
+    // Clear local state
     setObjects([])
     setCollectionBag([])
-    localStorage.removeItem("dumpObjects")
     localStorage.removeItem("collectionBag")
   }
 
@@ -103,7 +137,19 @@ export default function Home() {
     setDetailModalOpen(true)
   }
 
-  const handleUpdatePosition = (id: string, position: { x: number; y: number }, rotation: number) => {
+  const handleUpdatePosition = async (id: string, position: { x: number; y: number }, rotation: number) => {
+    const objectToUpdate = objects.find((obj) => obj.id === id)
+
+    // Update in Firestore if it has a firestoreId
+    if (objectToUpdate?.firestoreId) {
+      try {
+        await updateDumpObjectPosition(objectToUpdate.firestoreId, position, rotation)
+      } catch (error) {
+        console.error('Failed to update position in Firestore:', error)
+      }
+    }
+
+    // Update local state
     setObjects((prev) => prev.map((obj) => (obj.id === id ? { ...obj, position, rotation } : obj)))
   }
 
@@ -149,7 +195,7 @@ export default function Home() {
         <div
           className="h-full w-[200vw] bg-cover bg-center"
           style={{
-            backgroundImage: "url(/images/dumpdrop.png)",
+            backgroundImage: "url(/The-Dump/images/dumpdrop.png)",
             backgroundSize: "auto 100%",
             backgroundRepeat: "repeat-x",
           }}
@@ -176,7 +222,6 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-4">
-          <AmbientSoundPlayer />
           <button
             onClick={() => setInventoryModalOpen(true)}
             className="rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 text-sm text-foreground transition-all hover:bg-white/20"
