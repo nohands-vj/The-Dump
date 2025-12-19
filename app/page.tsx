@@ -8,6 +8,7 @@ import { DetailModal } from "@/components/detail-modal"
 import { CollectionBag } from "@/components/collection-bag"
 import { DumpTruckIcon } from "@/components/icons/dump-truck"
 import { AmbientSoundPlayer } from "@/components/ambient-sound-player"
+import { RelaxMode } from "@/components/relax-mode"
 
 export interface DumpItem {
   id: string
@@ -35,6 +36,7 @@ export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null)
   const draggedObjectsRef = useRef<Set<string>>(new Set())
   const [scrollX, setScrollX] = useState(0)
+  const [isRelaxMode, setIsRelaxMode] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem("dumpObjects")
@@ -163,7 +165,15 @@ export default function Home() {
           <DumpTruckIcon className="h-5 w-5 text-foreground" />
         </button>
 
-        <h1 className="text-2xl font-serif text-foreground tracking-tight">the dump</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-serif text-foreground tracking-tight">the dump</h1>
+          <button
+            onClick={() => setIsRelaxMode(!isRelaxMode)}
+            className="rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 text-sm text-foreground transition-all hover:bg-white/20"
+          >
+            {isRelaxMode ? "normal mode" : "relax mode"}
+          </button>
+        </div>
 
         <div className="flex items-center gap-4">
           <AmbientSoundPlayer />
@@ -176,30 +186,34 @@ export default function Home() {
         </div>
       </header>
 
-      <div ref={containerRef} className="relative h-full w-full overflow-x-auto overflow-y-hidden z-10">
-        {objects.length === 0 ? (
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center space-y-4">
-              <p className="text-foreground/60 text-lg font-serif">the dump is empty</p>
-              <p className="text-foreground/40 text-sm">click the truck to add your first objects</p>
+      {isRelaxMode ? (
+        <RelaxMode />
+      ) : (
+        <div ref={containerRef} className="relative h-full w-full overflow-x-auto overflow-y-hidden z-10">
+          {objects.length === 0 ? (
+            <div className="flex h-full items-center justify-center">
+              <div className="text-center space-y-4">
+                <p className="text-foreground/60 text-lg font-serif">the dump is empty</p>
+                <p className="text-foreground/40 text-sm">click the truck to add your first objects</p>
+              </div>
             </div>
-          </div>
-        ) : (
-          objects.map((object) => (
-            <DumpObject
-              key={object.id}
-              object={object}
-              onDoubleClick={handleDoubleClick}
-              onUpdatePosition={handleUpdatePosition}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              containerRef={containerRef}
-            />
-          ))
-        )}
-      </div>
+          ) : (
+            objects.map((object) => (
+              <DumpObject
+                key={object.id}
+                object={object}
+                onDoubleClick={handleDoubleClick}
+                onUpdatePosition={handleUpdatePosition}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                containerRef={containerRef}
+              />
+            ))
+          )}
+        </div>
+      )}
 
-      {objects.length > 0 && (
+      {objects.length > 0 && !isRelaxMode && (
         <>
           <button
             onClick={handleScrollLeft}
