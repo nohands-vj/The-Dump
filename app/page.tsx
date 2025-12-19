@@ -7,7 +7,6 @@ import { InventoryModal } from "@/components/inventory-modal"
 import { DetailModal } from "@/components/detail-modal"
 import { CollectionBag } from "@/components/collection-bag"
 import { DumpTruckIcon } from "@/components/icons/dump-truck"
-import { AmbientSoundPlayer } from "@/components/ambient-sound-player"
 import { RelaxMode } from "@/components/relax-mode"
 
 export interface DumpItem {
@@ -176,7 +175,6 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-4">
-          <AmbientSoundPlayer />
           <button
             onClick={() => setInventoryModalOpen(true)}
             className="rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 text-sm text-foreground transition-all hover:bg-white/20"
