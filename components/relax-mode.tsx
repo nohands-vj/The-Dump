@@ -23,7 +23,7 @@ export function RelaxMode() {
 
   useEffect(() => {
     setMounted(true)
-    if (!canvasRef.current) return
+    if (!canvasRef.current || typeof window === 'undefined') return
 
     // Create engine
     const engine = Matter.Engine.create({
