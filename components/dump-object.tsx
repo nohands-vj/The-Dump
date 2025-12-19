@@ -135,7 +135,7 @@ export function DumpObject({ object, onDoubleClick, onUpdatePosition, containerR
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={object.imageUrl || "/placeholder.svg"}
+        src={object.imageUrl || "/The-Dump/placeholder.svg"}
         alt={object.name}
         width={size}
         height={size}

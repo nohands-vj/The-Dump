@@ -42,7 +42,7 @@ export function InventoryModal({ open, onClose, objects, onDelete, onClear, onVi
                 className="group relative aspect-square rounded-lg overflow-hidden bg-muted border border-border hover:border-foreground/20 transition-all"
               >
                 <Image
-                  src={object.imageUrl || "/placeholder.svg"}
+                  src={object.imageUrl || "/The-Dump/placeholder.svg"}
                   alt={object.name}
                   fill
                   className="object-contain p-4"
