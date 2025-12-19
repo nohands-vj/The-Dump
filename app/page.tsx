@@ -50,12 +50,25 @@ export default function Home() {
 
   useEffect(() => {
     if (objects.length > 0) {
-      localStorage.setItem("dumpObjects", JSON.stringify(objects))
+      try {
+        localStorage.setItem("dumpObjects", JSON.stringify(objects))
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+          console.error('Storage quota exceeded. Try removing some objects from inventory.')
+          alert('Storage full! Please clear some objects from your dump to add more.')
+        }
+      }
     }
   }, [objects])
 
   useEffect(() => {
-    localStorage.setItem("collectionBag", JSON.stringify(collectionBag))
+    try {
+      localStorage.setItem("collectionBag", JSON.stringify(collectionBag))
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        console.error('Storage quota exceeded for collection bag.')
+      }
+    }
   }, [collectionBag])
 
   useEffect(() => {

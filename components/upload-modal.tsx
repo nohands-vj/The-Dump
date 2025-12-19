@@ -138,41 +138,88 @@ export function UploadModal({ open, onClose, onAddObjects, existingCount }: Uplo
     return { x, y }
   }
 
+  const compressImage = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          // Create canvas for compression
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            reject(new Error('Could not get canvas context'))
+            return
+          }
+
+          // Resize image to max 800px while maintaining aspect ratio
+          const maxSize = 800
+          let width = img.width
+          let height = img.height
+
+          if (width > height && width > maxSize) {
+            height = (height * maxSize) / width
+            width = maxSize
+          } else if (height > maxSize) {
+            width = (width * maxSize) / height
+            height = maxSize
+          }
+
+          canvas.width = width
+          canvas.height = height
+
+          // Draw and compress
+          ctx.drawImage(img, 0, 0, width, height)
+
+          // Convert to base64 with quality 0.8 (80%)
+          const compressed = canvas.toDataURL('image/jpeg', 0.8)
+          resolve(compressed)
+        }
+        img.onerror = () => reject(new Error('Failed to load image'))
+        img.src = e.target?.result as string
+      }
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsDataURL(file)
+    })
+  }
+
   const handleAddToDisplay = async () => {
     setIsAnalyzing(true)
 
-    const newObjects: DumpItem[] = await Promise.all(
-      files.map(async (file, index) => {
-        const reader = new FileReader()
-        const imageUrl = await new Promise<string>((resolve) => {
-          reader.onload = (e) => resolve(e.target?.result as string)
-          reader.readAsDataURL(file)
-        })
+    try {
+      const newObjects: DumpItem[] = await Promise.all(
+        files.map(async (file, index) => {
+          const imageUrl = await compressImage(file)
 
-        const metadata = generateMetadata(file.name)
+          const metadata = generateMetadata(file.name)
 
-        const globalIndex = existingCount + index
-        const homePosition = getNaturalPilePosition(metadata.size, globalIndex)
+          const globalIndex = existingCount + index
+          const homePosition = getNaturalPilePosition(metadata.size, globalIndex)
 
-        const baseZIndex = Math.floor(1000 - homePosition.y)
+          const baseZIndex = Math.floor(1000 - homePosition.y)
 
-        return {
-          id: `${Date.now()}-${index}`,
-          imageUrl,
-          ...metadata,
-          position: homePosition,
-          homePosition,
-          rotation: (Math.random() - 0.5) * 24,
-          zIndex: baseZIndex,
-        }
-      }),
-    )
+          return {
+            id: `${Date.now()}-${index}`,
+            imageUrl,
+            ...metadata,
+            position: homePosition,
+            homePosition,
+            rotation: (Math.random() - 0.5) * 24,
+            zIndex: baseZIndex,
+          }
+        }),
+      )
 
-    onAddObjects(newObjects)
-    setFiles([])
-    setPreviews([])
-    setIsAnalyzing(false)
-    onClose()
+      onAddObjects(newObjects)
+      setFiles([])
+      setPreviews([])
+      setIsAnalyzing(false)
+      onClose()
+    } catch (error) {
+      console.error('Failed to add objects:', error)
+      alert('Failed to add objects. Try uploading fewer or smaller images.')
+      setIsAnalyzing(false)
+    }
   }
 
   return (
