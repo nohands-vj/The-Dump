@@ -25,7 +25,7 @@ export function DetailModal({ open, onClose, object, onAddToBag, isInBag }: Deta
             {/* Image */}
             <div className="relative aspect-square rounded-lg overflow-hidden bg-muted flex items-center justify-center">
               <Image
-                src={object.imageUrl || "/placeholder.svg"}
+                src={object.imageUrl || "/The-Dump/placeholder.svg"}
                 alt={object.name}
                 width={400}
                 height={400}

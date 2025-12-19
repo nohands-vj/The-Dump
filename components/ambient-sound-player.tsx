@@ -10,7 +10,7 @@ export function AmbientSoundPlayer() {
 
   useEffect(() => {
     // Create audio element with ambient dump soundscape
-    audioRef.current = new Audio("/placeholder.mp3?query=ambient+dump+soundscape+with+seagulls+distant+trucks+crickets")
+    audioRef.current = new Audio("/The-Dump/placeholder.mp3?query=ambient+dump+soundscape+with+seagulls+distant+trucks+crickets")
     audioRef.current.loop = true
     audioRef.current.volume = volume
 

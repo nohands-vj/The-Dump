@@ -67,7 +67,7 @@ export function CollectionBag({ items, onRemove }: CollectionBagProps) {
                 {items.map((item) => (
                   <div key={item.id} className="relative group aspect-square rounded-md overflow-hidden bg-muted">
                     <Image
-                      src={item.imageUrl || "/placeholder.svg"}
+                      src={item.imageUrl || "/The-Dump/placeholder.svg"}
                       alt={item.name}
                       fill
                       className="object-contain p-2"
