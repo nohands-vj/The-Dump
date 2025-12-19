@@ -6,7 +6,6 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import type { DumpItem } from "@/app/page"
-import Image from "next/image"
 
 interface UploadModalProps {
   open: boolean
@@ -209,11 +208,11 @@ export function UploadModal({ open, onClose, onAddObjects, existingCount }: Uplo
               <div className="grid grid-cols-4 gap-4">
                 {previews.map((preview, index) => (
                   <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                    <Image
-                      src={preview || "/placeholder.svg"}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={preview}
                       alt={`Preview ${index + 1}`}
-                      fill
-                      className="object-contain"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                 ))}
