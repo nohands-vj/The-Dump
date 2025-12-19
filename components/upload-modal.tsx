@@ -104,8 +104,9 @@ export function UploadModal({ open, onClose, onAddObjects, existingCount }: Uplo
     const sizeMap = { small: 71, medium: 107, large: 160 }
     const objectSize = sizeMap[size]
 
-    const screenWidth = window.innerWidth
-    const screenHeight = window.innerHeight
+    // Use window dimensions only on client-side
+    const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920
+    const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 1080
 
     // Start from bottom of screen
     const bottomMargin = 20
