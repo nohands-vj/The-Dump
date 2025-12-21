@@ -178,7 +178,7 @@ export function UploadModal({ open, onClose, onAddObjects, existingCount }: Uplo
       onClose()
     } catch (error) {
       console.error('Failed to add objects:', error)
-      alert('Failed to add objects. Please check your Firebase configuration.')
+      alert('Failed to add objects. Make sure you are running in development mode (pnpm dev).')
       setIsAnalyzing(false)
     }
   }

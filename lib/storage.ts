@@ -1,30 +1,12 @@
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { collection, addDoc, getDocs, updateDoc, doc, deleteDoc } from 'firebase/firestore'
-import { storage, db } from './firebase'
+import { db } from './firebase'
 import type { DumpItem } from '@/app/page'
 
 /**
- * Upload an image file to Firebase Storage
- * @param file - The image file to upload
- * @param fileName - Unique filename for the image
- * @returns The download URL of the uploaded image
- */
-export async function uploadImage(file: File, fileName: string): Promise<string> {
-  const storageRef = ref(storage, `dump-objects/${fileName}`)
-
-  // Upload the file
-  await uploadBytes(storageRef, file)
-
-  // Get the download URL
-  const downloadURL = await getDownloadURL(storageRef)
-  return downloadURL
-}
-
-/**
- * Compress and upload an image to Firebase Storage
+ * Compress and upload an image to local storage (dev mode) or return placeholder
  * @param file - The image file to compress and upload
  * @param fileName - Unique filename for the image
- * @returns The download URL of the uploaded image
+ * @returns The public URL of the uploaded image
  */
 export async function compressAndUploadImage(file: File, fileName: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -68,11 +50,28 @@ export async function compressAndUploadImage(file: File, fileName: string): Prom
                 return
               }
 
-              // Upload to Firebase Storage
-              const storageRef = ref(storage, `dump-objects/${fileName}`)
-              await uploadBytes(storageRef, blob)
-              const downloadURL = await getDownloadURL(storageRef)
-              resolve(downloadURL)
+              // Upload to local API endpoint (only works in dev mode)
+              const formData = new FormData()
+              formData.append('file', blob, fileName)
+              formData.append('fileName', fileName)
+
+              try {
+                const response = await fetch('/api/upload', {
+                  method: 'POST',
+                  body: formData,
+                })
+
+                if (!response.ok) {
+                  const error = await response.json()
+                  reject(new Error(error.error || 'Upload failed'))
+                  return
+                }
+
+                const data = await response.json()
+                resolve(data.url)
+              } catch (error) {
+                reject(error)
+              }
             },
             'image/jpeg',
             0.8

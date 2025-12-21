@@ -1,6 +1,8 @@
 # Firebase Setup Instructions
 
-This project now uses Firebase Storage and Firestore to store your dump objects, providing unlimited storage capacity instead of being limited by browser localStorage (5-10MB).
+This project uses **Firestore only** to store dump object metadata (names, positions, lore, etc.). Images are stored in the repository itself at `/public/dump-objects/` and deployed with your site.
+
+This approach is **completely FREE** and doesn't require Firebase Storage (which needs a paid plan).
 
 ## Step 1: Create a Firebase Project
 
@@ -28,46 +30,22 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /dumpObjects/{document=**} {
-      // Allow anyone to read and write dump objects
-      // WARNING: This is open access - fine for a personal project
-      // For production, add authentication
-      allow read, write: if true;
+      // Allow anyone to read (view) dump objects
+      allow read: if true;
+      // Disable public writes - only you can write via localhost
+      allow write: if false;
     }
   }
 }
 ```
 
-3. Click "Publish"
-
-## Step 3: Enable Firebase Storage
-
-1. In your Firebase project, go to **Build** → **Storage**
-2. Click "Get started"
-3. Choose **Start in production mode**
-4. Use the same location as your Firestore database
-5. Click "Done"
-
-### Configure Storage Security Rules
-
-1. Go to the **Rules** tab in Storage
-2. Replace the default rules with:
-
-```
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /dump-objects/{allPaths=**} {
-      // Allow anyone to read and write dump object images
-      // WARNING: This is open access - fine for a personal project
-      allow read, write: if true;
-    }
-  }
-}
-```
+**Important:** These rules make the database **read-only** for the public. Only you can add items when running locally in development mode.
 
 3. Click "Publish"
 
-## Step 4: Get Your Firebase Configuration
+**Note:** You do NOT need to enable Firebase Storage. Images are stored in your repository.
+
+## Step 3: Get Your Firebase Configuration
 
 1. Go to **Project Settings** (gear icon in sidebar)
 2. Scroll down to "Your apps"
@@ -88,7 +66,7 @@ const firebaseConfig = {
 };
 ```
 
-## Step 5: Create Environment Variables File
+## Step 4: Create Environment Variables File
 
 1. In your project root (`/home/user/The-Dump/`), create a file named `.env.local`
 2. Add your Firebase configuration values:
@@ -104,7 +82,7 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
 
 **Important:** Replace all the placeholder values with your actual Firebase config values from Step 4.
 
-## Step 6: Add Environment Variables to GitHub
+## Step 5: Add Environment Variables to GitHub
 
 For your GitHub Pages deployment to work, you need to add these as GitHub Secrets:
 
@@ -118,13 +96,38 @@ For your GitHub Pages deployment to work, you need to add these as GitHub Secret
    - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
    - `NEXT_PUBLIC_FIREBASE_APP_ID`
 
-## Step 7: Update GitHub Actions Workflow
+## Step 6: How to Add Dump Objects
 
-Your `.github/workflows/nextjs.yml` file needs to be updated to use these secrets during build.
+### Adding Objects Locally (Development Mode)
 
-I'll update this file for you in the next step.
+1. Start the development server:
+   ```bash
+   pnpm dev
+   ```
 
-## Step 8: Test Locally
+2. Open http://localhost:3000 in your browser
+
+3. Click the **dump truck icon** in the top left (only visible in dev mode)
+
+4. Upload your images - they will be:
+   - Compressed and saved to `/public/dump-objects/`
+   - Metadata saved to Firestore with reference to the image path
+
+5. The images are now in your repository! To deploy them:
+   ```bash
+   git add public/dump-objects/
+   git commit -m "Add new dump objects"
+   git push
+   ```
+
+### Production (Deployed Site)
+
+- Upload button is hidden (users can't upload)
+- Users can only view and interact with existing objects
+- Images load from your deployed `/The-Dump/dump-objects/` folder
+- Metadata loads from Firestore (read-only)
+
+## Step 7: Test Locally
 
 1. Make sure your `.env.local` file has all the correct Firebase values
 2. Clear your browser's localStorage to remove old data:
@@ -135,18 +138,32 @@ I'll update this file for you in the next step.
    ```bash
    pnpm dev
    ```
-4. Upload a test image - it should now upload to Firebase Storage!
-5. Refresh the page - your objects should load from Firestore!
+4. Upload a test image:
+   - Click the dump truck icon
+   - Select an image file
+   - It will be saved to `/public/dump-objects/`
+   - Metadata will be saved to Firestore
 
-## Step 9: Deploy to GitHub Pages
+5. Check that it worked:
+   - Look in `/public/dump-objects/` folder for your image
+   - Refresh the page - your object should load from Firestore!
 
-After setting up the GitHub Secrets (Step 6) and updating the workflow (Step 7):
+## Step 8: Deploy to GitHub Pages
 
-1. Commit all changes
-2. Push to your branch
-3. Create a pull request
-4. Merge to main
-5. GitHub Actions will automatically build and deploy with Firebase configured
+After uploading your dump objects locally:
+
+1. Add and commit the images:
+   ```bash
+   git add public/dump-objects/
+   git commit -m "Add dump objects"
+   ```
+
+2. Push to your branch:
+   ```bash
+   git push
+   ```
+
+3. GitHub Actions will automatically build and deploy with Firebase configured
 
 ## Migration from localStorage
 
@@ -166,39 +183,52 @@ If you have existing objects in localStorage that you want to keep:
 
 ## Troubleshooting
 
-### "Failed to add objects. Please check your Firebase configuration."
+### "Failed to add objects. Make sure you are running in development mode."
 
-- Check that all environment variables in `.env.local` are correct
-- Make sure there are no quotes around the values in `.env.local`
-- Verify Firestore and Storage are enabled in Firebase Console
-- Check that security rules allow write access
+- Make sure you're running `pnpm dev` (not `pnpm build` or production)
+- The upload API route only works in development mode
+- Check that port 3000 is not blocked
 
 ### Objects not loading after refresh
 
 - Check browser console for Firebase errors
 - Verify Firestore has the `dumpObjects` collection with documents
 - Check that security rules allow read access
+- Make sure `.env.local` has correct Firebase credentials
 
 ### Images not displaying
 
-- Check that Firebase Storage has the `dump-objects` folder with images
-- Verify the imageUrl in Firestore points to a valid Firebase Storage URL
-- Check CORS settings (Firebase Storage has CORS enabled by default for your domain)
+- Check that images exist in `/public/dump-objects/` folder
+- Verify the imageUrl in Firestore points to `/The-Dump/dump-objects/{filename}`
+- Make sure you've committed and pushed the images to GitHub
+- Check that GitHub Pages deployment succeeded
 
-## Benefits of Firebase Storage
+### Upload button not showing
 
-✅ **Unlimited capacity** - No more QuotaExceededError!
-✅ **Persistent across devices** - Access your dump from anywhere
-✅ **Faster page loads** - Images are served from CDN
-✅ **Automatic compression** - Images are optimized before upload
-✅ **Scalable** - Support hundreds or thousands of objects
+- Upload button only appears in development mode (`pnpm dev`)
+- In production (deployed site), users cannot upload - this is intentional
+
+## Benefits of This Approach
+
+✅ **Completely FREE** - No Firebase Storage costs, only free Firestore
+✅ **No QuotaExceededError** - No localStorage limits
+✅ **Simple deployment** - Images deploy with your site
+✅ **Fast loading** - Images served directly from GitHub Pages CDN
+✅ **Automatic compression** - Images optimized to ~800px, 80% quality
+✅ **Full control** - All data in your repository
 
 ## Cost
 
-Firebase free tier includes:
-- **Firestore**: 1GB storage, 50K reads/day, 20K writes/day
-- **Storage**: 5GB storage, 1GB/day downloads
+This setup is **completely FREE**:
 
-For a personal dump collection site, you'll likely **stay within the free tier**.
+**Firestore (FREE tier):**
+- 1GB storage for metadata
+- 50K reads/day
+- 20K writes/day (only you write, users only read)
 
-If you exceed these limits, Firebase will email you. You can then upgrade to pay-as-you-go, which is very affordable for small projects.
+**GitHub Pages (FREE):**
+- Unlimited bandwidth
+- Images served from CDN
+- No storage limits for public repos
+
+For a personal dump collection site with 1000 items, you'll **easily stay within the free tier**. Firestore metadata is tiny (few KB per object), so 1GB can store hundreds of thousands of objects.

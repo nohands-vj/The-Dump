@@ -203,13 +203,15 @@ export default function Home() {
       </div>
 
       <header className="absolute top-0 left-0 right-0 z-[60] flex items-center justify-between p-6">
-        <button
-          onClick={() => setUploadModalOpen(true)}
-          className="group flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 transition-all hover:bg-white/20"
-          aria-label="Add objects to dump"
-        >
-          <DumpTruckIcon className="h-5 w-5 text-foreground" />
-        </button>
+        {process.env.NODE_ENV === 'development' && (
+          <button
+            onClick={() => setUploadModalOpen(true)}
+            className="group flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 transition-all hover:bg-white/20"
+            aria-label="Add objects to dump"
+          >
+            <DumpTruckIcon className="h-5 w-5 text-foreground" />
+          </button>
+        )}
 
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-serif text-foreground tracking-tight">the dump</h1>
