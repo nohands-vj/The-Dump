@@ -1,29 +1,43 @@
-# Sound Files for Relax Mode
+# Spa Sounds for Relax Mode
 
-This directory should contain the following calming spa-like music files for the rocks:
+This folder contains calming spa-like sounds that play when objects collide in relax mode.
 
 ## Required Sound Files:
 
-1. **chime-high.mp3** - High-pitched calming chime sound for small rocks
-2. **chime-mid.mp3** - Mid-pitched calming chime sound for medium rocks
-3. **chime-low.mp3** - Low-pitched calming chime sound for large rocks
+You'll need to add these 5 calming spa sound files (MP3 format):
 
-## Sound Specifications:
+1. `spa-chime-1.mp3` - High-pitched calming chime
+2. `spa-chime-2.mp3` - Mid-pitched calming chime
+3. `spa-chime-3.mp3` - Low-pitched calming chime
+4. `spa-bell.mp3` - Gentle bell tone
+5. `spa-ting.mp3` - Soft metallic ting sound
 
-- **Format**: MP3
-- **Duration**: 1-3 seconds recommended
-- **Style**: Calming, spa-like, meditation sounds (e.g., singing bowls, soft chimes, gentle bells)
-- **Volume**: The application will dynamically adjust volume based on impact velocity
+## Where to Find Spa Sounds:
 
-## Recommendations:
+**Free Sources:**
+- **Freesound.org** - Search for "spa chime", "meditation bell", "zen bell"
+- **Pixabay.com** - Free spa and meditation sounds
+- **ZapSplat.com** - Free sound effects (with attribution)
 
-For a truly relaxing experience, consider using:
-- Tibetan singing bowl sounds
-- Crystal bowl chimes
-- Soft wind chimes
-- Gentle meditation bells
-- Water droplet sounds
+**Recommended Search Terms:**
+- "zen bell"
+- "tibetan bowl"
+- "meditation chime"
+- "spa bell"
+- "singing bowl"
+- "wind chime"
 
-## Fallback:
+## How It Works:
 
-If these files are not present, the RelaxMode component will work without sound, focusing purely on the visual physics experience.
+- Each dump object is assigned a random spa sound when created
+- Sounds play on collision based on impact velocity
+- Heavier objects make louder sounds
+- Volume scales with collision force (max 40%)
+- Creates a calming, meditative experience as you interact with objects
+
+## Upload Instructions:
+
+1. Download 5 calming MP3 files
+2. Rename them to match the filenames above
+3. Upload to: `public/sounds/` via GitHub
+4. Or place them in this directory if working locally
