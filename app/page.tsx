@@ -8,6 +8,7 @@ import { DetailModal } from "@/components/detail-modal"
 import { CollectionBag } from "@/components/collection-bag"
 import { DumpTruckIcon } from "@/components/icons/dump-truck"
 import { RelaxMode } from "@/components/relax-mode"
+import { getAllDumpObjects, updateDumpObjectPosition, deleteDumpObject } from "@/lib/storage"
 
 export interface DumpItem {
   id: string
@@ -23,6 +24,7 @@ export interface DumpItem {
   rotation: number
   zIndex: number
   homePosition: { x: number; y: number } // Add home position for return animation
+  firestoreId?: string // Firestore document ID for syncing
 }
 
 export default function Home() {
@@ -38,37 +40,35 @@ export default function Home() {
   const [isRelaxMode, setIsRelaxMode] = useState(false)
 
   useEffect(() => {
-    const saved = localStorage.getItem("dumpObjects")
-    if (saved) {
-      setObjects(JSON.parse(saved))
+    // Load objects from Firestore on mount
+    const loadObjects = async () => {
+      try {
+        const firestoreObjects = await getAllDumpObjects()
+        setObjects(firestoreObjects)
+      } catch (error) {
+        console.error('Failed to load objects from Firestore:', error)
+        // Fallback to localStorage if Firebase fails
+        const saved = localStorage.getItem("dumpObjects")
+        if (saved) {
+          setObjects(JSON.parse(saved))
+        }
+      }
     }
+
+    loadObjects()
+
+    // Load collection bag from localStorage (not critical data)
     const savedBag = localStorage.getItem("collectionBag")
     if (savedBag) {
       setCollectionBag(JSON.parse(savedBag))
     }
   }, [])
 
-  useEffect(() => {
-    if (objects.length > 0) {
-      try {
-        localStorage.setItem("dumpObjects", JSON.stringify(objects))
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-          console.error('Storage quota exceeded. Try removing some objects from inventory.')
-          alert('Storage full! Please clear some objects from your dump to add more.')
-        }
-      }
-    }
-  }, [objects])
+  // Objects are now stored in Firestore, not localStorage
+  // No need to sync on every change - individual operations handle Firestore updates
 
   useEffect(() => {
-    try {
-      localStorage.setItem("collectionBag", JSON.stringify(collectionBag))
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        console.error('Storage quota exceeded for collection bag.')
-      }
-    }
+    localStorage.setItem("collectionBag", JSON.stringify(collectionBag))
   }, [collectionBag])
 
   useEffect(() => {
@@ -98,15 +98,37 @@ export default function Home() {
     setObjects((prev) => [...prev, ...newObjects])
   }
 
-  const handleDeleteObject = (id: string) => {
+  const handleDeleteObject = async (id: string) => {
+    const objectToDelete = objects.find((obj) => obj.id === id)
+
+    // Delete from Firestore if it has a firestoreId
+    if (objectToDelete?.firestoreId) {
+      try {
+        await deleteDumpObject(objectToDelete.firestoreId)
+      } catch (error) {
+        console.error('Failed to delete from Firestore:', error)
+      }
+    }
+
+    // Update local state
     setObjects((prev) => prev.filter((obj) => obj.id !== id))
     setCollectionBag((prev) => prev.filter((obj) => obj.id !== id))
   }
 
-  const handleClearDump = () => {
+  const handleClearDump = async () => {
+    // Delete all objects from Firestore
+    try {
+      const deletePromises = objects
+        .filter((obj) => obj.firestoreId)
+        .map((obj) => deleteDumpObject(obj.firestoreId!))
+      await Promise.all(deletePromises)
+    } catch (error) {
+      console.error('Failed to clear Firestore:', error)
+    }
+
+    // Clear local state
     setObjects([])
     setCollectionBag([])
-    localStorage.removeItem("dumpObjects")
     localStorage.removeItem("collectionBag")
   }
 
@@ -115,7 +137,19 @@ export default function Home() {
     setDetailModalOpen(true)
   }
 
-  const handleUpdatePosition = (id: string, position: { x: number; y: number }, rotation: number) => {
+  const handleUpdatePosition = async (id: string, position: { x: number; y: number }, rotation: number) => {
+    const objectToUpdate = objects.find((obj) => obj.id === id)
+
+    // Update in Firestore if it has a firestoreId
+    if (objectToUpdate?.firestoreId) {
+      try {
+        await updateDumpObjectPosition(objectToUpdate.firestoreId, position, rotation)
+      } catch (error) {
+        console.error('Failed to update position in Firestore:', error)
+      }
+    }
+
+    // Update local state
     setObjects((prev) => prev.map((obj) => (obj.id === id ? { ...obj, position, rotation } : obj)))
   }
 
@@ -169,13 +203,15 @@ export default function Home() {
       </div>
 
       <header className="absolute top-0 left-0 right-0 z-[60] flex items-center justify-between p-6">
-        <button
-          onClick={() => setUploadModalOpen(true)}
-          className="group flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 transition-all hover:bg-white/20"
-          aria-label="Add objects to dump"
-        >
-          <DumpTruckIcon className="h-5 w-5 text-foreground" />
-        </button>
+        {process.env.NODE_ENV === 'development' && (
+          <button
+            onClick={() => setUploadModalOpen(true)}
+            className="group flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 transition-all hover:bg-white/20"
+            aria-label="Add objects to dump"
+          >
+            <DumpTruckIcon className="h-5 w-5 text-foreground" />
+          </button>
+        )}
 
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-serif text-foreground tracking-tight">the dump</h1>

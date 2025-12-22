@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import type { DumpItem } from "@/app/page"
+import { compressAndUploadImage, saveDumpObject } from "@/lib/storage"
 
 interface UploadModalProps {
   open: boolean
@@ -189,7 +190,9 @@ export function UploadModal({ open, onClose, onAddObjects, existingCount }: Uplo
     try {
       const newObjects: DumpItem[] = await Promise.all(
         files.map(async (file, index) => {
-          const imageUrl = await compressImage(file)
+          // Upload image to Firebase Storage and get URL
+          const fileName = `${Date.now()}-${index}-${file.name}`
+          const imageUrl = await compressAndUploadImage(file, fileName)
 
           const metadata = generateMetadata(file.name)
 
@@ -198,7 +201,7 @@ export function UploadModal({ open, onClose, onAddObjects, existingCount }: Uplo
 
           const baseZIndex = Math.floor(1000 - homePosition.y)
 
-          return {
+          const newObject: DumpItem = {
             id: `${Date.now()}-${index}`,
             imageUrl,
             ...metadata,
@@ -207,8 +210,13 @@ export function UploadModal({ open, onClose, onAddObjects, existingCount }: Uplo
             rotation: (Math.random() - 0.5) * 24,
             zIndex: baseZIndex,
           }
+
+          // Save to Firestore
+          const firestoreId = await saveDumpObject(newObject)
+          return { ...newObject, firestoreId }
         }),
       )
+
 
       onAddObjects(newObjects)
       setFiles([])
@@ -217,7 +225,7 @@ export function UploadModal({ open, onClose, onAddObjects, existingCount }: Uplo
       onClose()
     } catch (error) {
       console.error('Failed to add objects:', error)
-      alert('Failed to add objects. Try uploading fewer or smaller images.')
+      alert('Failed to add objects. Make sure you are running in development mode (pnpm dev).')
       setIsAnalyzing(false)
     }
   }
