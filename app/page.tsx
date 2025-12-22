@@ -193,7 +193,7 @@ export default function Home() {
         }}
       >
         <div
-          className="h-full w-[200vw] bg-cover bg-center"
+          className="h-full w-[400vw] bg-cover bg-center"
           style={{
             backgroundImage: "url(/The-Dump/images/dumpdrop.png)",
             backgroundSize: "auto 100%",
