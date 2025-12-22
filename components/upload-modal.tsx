@@ -104,8 +104,9 @@ export function UploadModal({ open, onClose, onAddObjects, existingCount }: Uplo
     const sizeMap = { small: 71, medium: 107, large: 160 }
     const objectSize = sizeMap[size]
 
-    const screenWidth = window.innerWidth
-    const screenHeight = window.innerHeight
+    // Use window dimensions only on client-side
+    const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920
+    const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 1080
 
     // Start from bottom of screen
     const bottomMargin = 20
@@ -136,6 +137,51 @@ export function UploadModal({ open, onClose, onAddObjects, existingCount }: Uplo
     const y = Math.max(objectSize / 2 + 80, baseY + scatterY)
 
     return { x, y }
+  }
+
+  const compressImage = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          // Create canvas for compression
+          const canvas = document.createElement('canvas')
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            reject(new Error('Could not get canvas context'))
+            return
+          }
+
+          // Resize image to max 800px while maintaining aspect ratio
+          const maxSize = 800
+          let width = img.width
+          let height = img.height
+
+          if (width > height && width > maxSize) {
+            height = (height * maxSize) / width
+            width = maxSize
+          } else if (height > maxSize) {
+            width = (width * maxSize) / height
+            height = maxSize
+          }
+
+          canvas.width = width
+          canvas.height = height
+
+          // Draw and compress
+          ctx.drawImage(img, 0, 0, width, height)
+
+          // Convert to base64 with quality 0.8 (80%)
+          const compressed = canvas.toDataURL('image/jpeg', 0.8)
+          resolve(compressed)
+        }
+        img.onerror = () => reject(new Error('Failed to load image'))
+        img.src = e.target?.result as string
+      }
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsDataURL(file)
+    })
   }
 
   const handleAddToDisplay = async () => {
@@ -170,6 +216,7 @@ export function UploadModal({ open, onClose, onAddObjects, existingCount }: Uplo
           return { ...newObject, firestoreId }
         }),
       )
+
 
       onAddObjects(newObjects)
       setFiles([])
@@ -216,11 +263,11 @@ export function UploadModal({ open, onClose, onAddObjects, existingCount }: Uplo
               <div className="grid grid-cols-4 gap-4">
                 {previews.map((preview, index) => (
                   <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                    <Image
-                      src={preview || "/placeholder.svg"}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={preview}
                       alt={`Preview ${index + 1}`}
-                      fill
-                      className="object-contain"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                 ))}

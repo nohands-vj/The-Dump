@@ -3,7 +3,6 @@
 import type React from "react"
 import { useRef, useState, useEffect } from "react"
 import type { DumpItem } from "@/app/page"
-import Image from "next/image"
 
 interface DumpObjectProps {
   object: DumpItem
@@ -134,8 +133,9 @@ export function DumpObject({ object, onDoubleClick, onUpdatePosition, containerR
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Image
-        src={object.imageUrl || "/placeholder.svg"}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={object.imageUrl || "/The-Dump/placeholder.svg"}
         alt={object.name}
         width={size}
         height={size}

@@ -23,7 +23,7 @@ export function RelaxMode() {
 
   useEffect(() => {
     setMounted(true)
-    if (!canvasRef.current) return
+    if (!canvasRef.current || typeof window === 'undefined') return
 
     // Create engine
     const engine = Matter.Engine.create({
@@ -168,9 +168,9 @@ export function RelaxMode() {
     if (!engineRef.current) return
 
     const sizeMap = {
-      small: { radius: 30, density: 0.001, soundUrl: "/sounds/chime-high.mp3" },
-      medium: { radius: 50, density: 0.003, soundUrl: "/sounds/chime-mid.mp3" },
-      large: { radius: 75, density: 0.005, soundUrl: "/sounds/chime-low.mp3" }
+      small: { radius: 30, density: 0.001, soundUrl: "/The-Dump/sounds/chime-high.mp3" },
+      medium: { radius: 50, density: 0.003, soundUrl: "/The-Dump/sounds/chime-mid.mp3" },
+      large: { radius: 75, density: 0.005, soundUrl: "/The-Dump/sounds/chime-low.mp3" }
     }
 
     const config = sizeMap[size]

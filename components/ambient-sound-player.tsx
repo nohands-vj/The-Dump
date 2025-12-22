@@ -8,12 +8,16 @@ export function AmbientSoundPlayer() {
   const [isPlaying, setIsPlaying] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
-  useEffect(() => {
-    // Create audio element with ambient dump soundscape
-    audioRef.current = new Audio("/placeholder.mp3?query=ambient+dump+soundscape+with+seagulls+distant+trucks+crickets")
-    audioRef.current.loop = true
-    audioRef.current.volume = volume
+  // Don't create audio on mount - only when user clicks play
+  // This prevents 404 errors for optional audio files
 
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume
+    }
+  }, [volume])
+
+  useEffect(() => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause()
@@ -22,20 +26,20 @@ export function AmbientSoundPlayer() {
     }
   }, [])
 
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume
-    }
-  }, [volume])
-
   const togglePlay = async () => {
-    if (!audioRef.current) return
-
     if (isPlaying) {
-      audioRef.current.pause()
+      if (audioRef.current) {
+        audioRef.current.pause()
+      }
       setIsPlaying(false)
     } else {
       try {
+        // Create audio element only when user wants to play
+        if (!audioRef.current) {
+          audioRef.current = new Audio("/The-Dump/placeholder.mp3?query=ambient+dump+soundscape+with+seagulls+distant+trucks+crickets")
+          audioRef.current.loop = true
+          audioRef.current.volume = volume
+        }
         await audioRef.current.play()
         setIsPlaying(true)
       } catch (error) {
