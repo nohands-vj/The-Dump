@@ -230,11 +230,14 @@ export function RelaxMode() {
 
     // Spa sound library - calming tones
     const spaSound = [
-      "/The-Dump/sounds/spa-chime-1.mp3",
-      "/The-Dump/sounds/spa-chime-2.mp3",
-      "/The-Dump/sounds/spa-chime-3.mp3",
-      "/The-Dump/sounds/spa-bell.mp3",
-      "/The-Dump/sounds/spa-ting.mp3"
+      "/The-Dump/sounds/spa_#1-1766425239841.mp3",
+      "/The-Dump/sounds/spa_#2-1766425247556.mp3",
+      "/The-Dump/sounds/spa_souns_#2-1766425219002.mp3",
+      "/The-Dump/sounds/spa_souns_#4-1766425206462.mp3",
+      "/The-Dump/sounds/chime_#3-1766425332748.mp3",
+      "/The-Dump/sounds/gong_#3-1766425283617.mp3",
+      "/The-Dump/sounds/gong_#3-1766425310235.mp3",
+      "/The-Dump/sounds/gong_#4-1766425314672.mp3"
     ]
 
     const sizeConfig = sizeMap[item.size]
