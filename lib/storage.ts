@@ -103,14 +103,36 @@ export async function saveDumpObject(object: DumpItem): Promise<string> {
  * @returns Array of all dump objects
  */
 export async function getAllDumpObjects(): Promise<DumpItem[]> {
-  const querySnapshot = await getDocs(collection(db, 'dumpObjects'))
-  const objects: DumpItem[] = []
+  try {
+    console.log('🔍 Attempting to fetch dump objects from Firestore...')
+    console.log('📊 Firebase config check:', {
+      hasApiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      hasProjectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    })
 
-  querySnapshot.forEach((doc) => {
-    objects.push({ ...doc.data(), firestoreId: doc.id } as DumpItem)
-  })
+    const querySnapshot = await getDocs(collection(db, 'dumpObjects'))
+    const objects: DumpItem[] = []
 
-  return objects
+    console.log(`📦 Found ${querySnapshot.size} documents in Firestore`)
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data()
+      console.log(`📄 Document ${doc.id}:`, Object.keys(data))
+      objects.push({ ...data, firestoreId: doc.id } as DumpItem)
+    })
+
+    console.log(`✅ Successfully loaded ${objects.length} dump objects`)
+    return objects
+  } catch (error) {
+    console.error('❌ Failed to load dump objects from Firestore:', error)
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as any)?.code
+    })
+    throw error
+  }
 }
 
 /**
