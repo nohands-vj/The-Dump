@@ -106,7 +106,8 @@ export function RelaxMode() {
     const mouseConstraint = Matter.MouseConstraint.create(engine, {
       mouse: mouse,
       constraint: {
-        stiffness: 0.2,
+        stiffness: 0.05, // Lower stiffness for smoother throwing
+        damping: 0.1,    // Add damping to prevent wild movements
         render: {
           visible: false
         }
@@ -123,12 +124,14 @@ export function RelaxMode() {
     Matter.Runner.run(runner, engine)
     Matter.Render.run(render)
 
-    // Add random dump objects on load
+    // Add random dump objects on load with spread
     const numInitialObjects = Math.min(12, dumpItems.length)
     for (let i = 0; i < numInitialObjects; i++) {
       const randomItem = dumpItems[Math.floor(Math.random() * dumpItems.length)]
-      const x = window.innerWidth * (0.2 + Math.random() * 0.6)
-      const y = 100 + i * 80
+      // Spread objects across the width with random positions
+      const x = window.innerWidth * (0.15 + Math.random() * 0.7)
+      // Stagger heights with more variation
+      const y = 50 + i * 60 + (Math.random() - 0.5) * 40
       addDumpObject(x, y, randomItem)
     }
 
@@ -248,9 +251,10 @@ export function RelaxMode() {
     // Create circular body
     const body = Matter.Bodies.circle(x, y, sizeConfig.radius, {
       density: density,
-      restitution: 0.5, // Bounciness
-      friction: 0.4,
-      frictionAir: 0.01,
+      restitution: 0.7, // Higher bounciness to prevent clumping
+      friction: 0.1,    // Lower friction so objects slide more
+      frictionAir: 0.005, // Less air resistance for smoother movement
+      slop: 0.05,       // Small collision tolerance
       render: {
         fillStyle: 'rgba(200, 200, 200, 0.1)', // Nearly invisible - image will show
         strokeStyle: 'transparent',
