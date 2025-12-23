@@ -21,16 +21,25 @@ Your dump objects exist in Firestore (84 documents confirmed!) but the **deploye
 
 ### Step 2: Add Each Firebase Secret
 
-Click **New repository secret** and add these **6 secrets** one by one:
+Click **New repository secret** and add these **6 secrets** one by one.
 
-| Secret Name | Value (from your .env.local) |
-|-------------|------------------------------|
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | `AIzaSyA1rER_DdXfbNH12d81ZWcIxZbUUd7Gfvc` |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `the-dump-d1ab0.firebaseapp.com` |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `the-dump-d1ab0` |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `the-dump-d1ab0.firebasestorage.app` |
-| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `796006932432` |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | `1:796006932432:web:126bb6bdf005e95a12a3d5` |
+**Get these values from your Firebase Console:**
+1. Go to Firebase Console → Project Settings → General
+2. Scroll down to "Your apps" section
+3. Copy each value from the Firebase SDK config
+
+**Required Secrets:**
+
+| Secret Name | Where to Find It |
+|-------------|------------------|
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Console → Project Settings → General → Web API Key |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Console → Project Settings → General → Auth domain |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase Console → Project Settings → General → Project ID |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase Console → Project Settings → General → Storage bucket |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase Console → Project Settings → General → Sender ID |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase Console → Project Settings → General → App ID |
+
+**IMPORTANT:** Never commit actual credential values to git!
 
 ### Step 3: Trigger a New Deployment
 

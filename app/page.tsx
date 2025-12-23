@@ -44,7 +44,39 @@ export default function Home() {
     const loadObjects = async () => {
       try {
         const firestoreObjects = await getAllDumpObjects()
-        setObjects(firestoreObjects)
+
+        // Ensure all objects have proper positions spread across the dump
+        const objectsWithPositions = firestoreObjects.map((obj, index) => {
+          // Check if object has valid position
+          const hasValidPosition = obj.position &&
+            typeof obj.position.x === 'number' &&
+            typeof obj.position.y === 'number' &&
+            obj.position.x > 0 && obj.position.y > 0
+
+          if (hasValidPosition) {
+            return obj
+          }
+
+          // Generate spread-out position for objects without valid positions
+          const row = Math.floor(index / 10) // 10 objects per row
+          const col = index % 10
+
+          return {
+            ...obj,
+            position: {
+              x: 200 + col * 300 + Math.random() * 100, // Spread horizontally
+              y: 200 + row * 250 + Math.random() * 50   // Spread vertically
+            },
+            homePosition: {
+              x: 200 + col * 300 + Math.random() * 100,
+              y: 200 + row * 250 + Math.random() * 50
+            },
+            rotation: obj.rotation || Math.random() * 360,
+            zIndex: obj.zIndex || 100 + index
+          }
+        })
+
+        setObjects(objectsWithPositions)
       } catch (error) {
         console.error('Failed to load objects from Firestore:', error)
         // Fallback to localStorage if Firebase fails
@@ -205,12 +237,6 @@ export default function Home() {
 
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-serif text-foreground tracking-tight">the dump</h1>
-          <button
-            onClick={() => setIsRelaxMode(!isRelaxMode)}
-            className="rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 text-sm text-foreground transition-all hover:bg-white/20"
-          >
-            {isRelaxMode ? "normal mode" : "relax mode"}
-          </button>
         </div>
 
         <div className="flex items-center gap-4">
