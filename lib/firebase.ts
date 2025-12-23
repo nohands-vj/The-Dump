@@ -3,7 +3,7 @@ import { getFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
 // Firebase configuration
-// These values will come from your Firebase project settings
+// These values come from GitHub Secrets during build
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -12,6 +12,13 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
+
+// Log config status (only shows boolean, not actual secrets)
+console.log('🔥 Firebase initialization:', {
+  hasApiKey: !!firebaseConfig.apiKey,
+  hasProjectId: !!firebaseConfig.projectId,
+  projectId: firebaseConfig.projectId
+})
 
 // Initialize Firebase (only once)
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()
