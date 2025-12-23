@@ -205,12 +205,6 @@ export default function Home() {
 
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-serif text-foreground tracking-tight">the dump</h1>
-          <button
-            onClick={() => setIsRelaxMode(!isRelaxMode)}
-            className="rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 text-sm text-foreground transition-all hover:bg-white/20"
-          >
-            {isRelaxMode ? "normal mode" : "relax mode"}
-          </button>
         </div>
 
         <div className="flex items-center gap-4">
