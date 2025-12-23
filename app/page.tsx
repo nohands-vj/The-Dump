@@ -8,7 +8,7 @@ import { DetailModal } from "@/components/detail-modal"
 import { CollectionBag } from "@/components/collection-bag"
 import { DumpTruckIcon } from "@/components/icons/dump-truck"
 import { RelaxMode } from "@/components/relax-mode"
-import { getAllDumpObjects, updateDumpObjectPosition, deleteDumpObject } from "@/lib/storage"
+import { getAllDumpObjects, deleteDumpObject } from "@/lib/storage"
 
 export interface DumpItem {
   id: string
@@ -138,18 +138,8 @@ export default function Home() {
   }
 
   const handleUpdatePosition = async (id: string, position: { x: number; y: number }, rotation: number) => {
-    const objectToUpdate = objects.find((obj) => obj.id === id)
-
-    // Update in Firestore if it has a firestoreId
-    if (objectToUpdate?.firestoreId) {
-      try {
-        await updateDumpObjectPosition(objectToUpdate.firestoreId, position, rotation)
-      } catch (error) {
-        console.error('Failed to update position in Firestore:', error)
-      }
-    }
-
-    // Update local state
+    // Just update local state - no need to save positions to Firestore
+    // Objects are already permanently stored in Firestore
     setObjects((prev) => prev.map((obj) => (obj.id === id ? { ...obj, position, rotation } : obj)))
   }
 
