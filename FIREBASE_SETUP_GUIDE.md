@@ -1,5 +1,7 @@
 # Firebase Setup Guide - Fixing "Limit Reached" and Loading Issues
 
+**Last Updated:** 2024-12-23
+
 ## The Problem
 
 Your dump objects exist in Firestore (84 documents confirmed!) but the **deployed site on GitHub Pages cannot access them**. This is because:
