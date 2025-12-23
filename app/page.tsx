@@ -45,19 +45,9 @@ export default function Home() {
       try {
         const firestoreObjects = await getAllDumpObjects()
 
-        // Ensure all objects have proper positions spread across the dump
+        // ALWAYS regenerate positions to ensure proper spacing
+        // Firestore may have duplicate/invalid positions causing clumping
         const objectsWithPositions = firestoreObjects.map((obj, index) => {
-          // Check if object has valid position
-          const hasValidPosition = obj.position &&
-            typeof obj.position.x === 'number' &&
-            typeof obj.position.y === 'number' &&
-            obj.position.x > 0 && obj.position.y > 0
-
-          if (hasValidPosition) {
-            return obj
-          }
-
-          // Generate spread-out position for objects without valid positions
           const row = Math.floor(index / 10) // 10 objects per row
           const col = index % 10
 
@@ -71,8 +61,8 @@ export default function Home() {
               x: 200 + col * 300 + Math.random() * 100,
               y: 200 + row * 250 + Math.random() * 50
             },
-            rotation: obj.rotation || Math.random() * 360,
-            zIndex: obj.zIndex || 100 + index
+            rotation: Math.random() * 360,
+            zIndex: 100 + index
           }
         })
 
