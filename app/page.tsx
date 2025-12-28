@@ -46,20 +46,20 @@ export default function Home() {
         const firestoreObjects = await getAllDumpObjects()
 
         // ALWAYS regenerate positions to ensure proper spacing
-        // Firestore may have duplicate/invalid positions causing clumping
+        // Spread objects across the FULL width of the dump
         const objectsWithPositions = firestoreObjects.map((obj, index) => {
-          const row = Math.floor(index / 10) // 10 objects per row
-          const col = index % 10
+          const col = index % 10 // 10 objects per row
+          const row = Math.floor(index / 10)
 
           return {
             ...obj,
             position: {
-              x: 200 + col * 300 + Math.random() * 100, // Spread horizontally
-              y: 200 + row * 250 + Math.random() * 50   // Spread vertically
+              x: 300 + col * 350 + Math.random() * 150, // Wide horizontal spread
+              y: 150 + row * 120 + Math.random() * 60   // Vertical spacing within viewport
             },
             homePosition: {
-              x: 200 + col * 300 + Math.random() * 100,
-              y: 200 + row * 250 + Math.random() * 50
+              x: 300 + col * 350 + Math.random() * 150,
+              y: 150 + row * 120 + Math.random() * 60
             },
             rotation: Math.random() * 360,
             zIndex: 100 + index
