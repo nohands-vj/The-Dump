@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { autoPopulateFirestore } from '@/lib/auto-populate'
+import { IMAGE_FILENAMES } from '@/lib/image-manifest'
 import { Button } from '@/components/ui/button'
 
 /**
@@ -12,6 +13,11 @@ export default function AdminPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [result, setResult] = useState<string>('')
   const [imageList, setImageList] = useState<string>('')
+
+  // Auto-populate the image list on mount
+  useEffect(() => {
+    setImageList(IMAGE_FILENAMES.join('\n'))
+  }, [])
 
   const handleAutoPopulate = async () => {
     if (!imageList.trim()) {
@@ -59,19 +65,16 @@ export default function AdminPage() {
 
           <div className="space-y-6">
             <div>
-              <h2 className="text-xl text-white mb-4">Step 1: Get Image Filenames</h2>
+              <h2 className="text-xl text-white mb-4">Step 1: Image Filenames</h2>
               <div className="bg-black/20 rounded-lg p-4 text-white/80 text-sm font-mono mb-4">
-                <p className="mb-2">After uploading images to GitHub, list them here (one per line):</p>
-                <p className="text-white/60">Example:</p>
-                <p className="text-green-400">rock-001.jpg</p>
-                <p className="text-green-400">rock-002.jpg</p>
-                <p className="text-green-400">stone-texture-01.png</p>
+                <p className="mb-2">✅ Auto-loaded {IMAGE_FILENAMES.length} images from /public/dump-objects/</p>
+                <p className="text-white/60">You can edit the list below if needed.</p>
               </div>
 
               <textarea
                 value={imageList}
                 onChange={(e) => setImageList(e.target.value)}
-                placeholder="Paste your image filenames here (one per line)..."
+                placeholder="Image filenames (one per line)..."
                 className="w-full h-64 bg-black/30 text-white rounded-lg p-4 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
               />
             </div>
