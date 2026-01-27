@@ -105,16 +105,27 @@ export async function saveDumpObject(object: DumpItem): Promise<string> {
 export async function getAllDumpObjects(): Promise<DumpItem[]> {
   try {
     console.log('🔍 Attempting to fetch dump objects from Firestore...')
-    console.log('📊 Firebase config check:', {
+    console.log('📊 Environment check:', {
       hasApiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
       hasProjectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString(),
     })
+
+    if (!db) {
+      throw new Error('Firestore database is not initialized. Check Firebase configuration.')
+    }
 
     const querySnapshot = await getDocs(collection(db, 'dumpObjects'))
     const objects: DumpItem[] = []
 
     console.log(`📦 Found ${querySnapshot.size} documents in Firestore`)
+
+    if (querySnapshot.size === 0) {
+      console.warn('⚠️ No documents found in Firestore. Database might be empty or security rules might be blocking access.')
+      console.warn('💡 To populate the database, visit the admin page: /admin')
+    }
 
     querySnapshot.forEach((doc) => {
       const data = doc.data()
@@ -122,15 +133,27 @@ export async function getAllDumpObjects(): Promise<DumpItem[]> {
       objects.push({ ...data, firestoreId: doc.id } as DumpItem)
     })
 
-    console.log(`✅ Successfully loaded ${objects.length} dump objects`)
+    console.log(`✅ Successfully loaded ${objects.length} dump objects from Firestore`)
     return objects
   } catch (error) {
-    console.error('❌ Failed to load dump objects from Firestore:', error)
+    console.error('❌ Failed to load dump objects from Firestore')
     console.error('Error details:', {
       name: error instanceof Error ? error.name : 'Unknown',
       message: error instanceof Error ? error.message : String(error),
-      code: (error as any)?.code
+      code: (error as any)?.code,
+      stack: error instanceof Error ? error.stack : undefined,
     })
+
+    // Provide helpful error messages based on error type
+    if ((error as any)?.code === 'permission-denied') {
+      console.error('🔒 Permission denied! Check your Firestore security rules.')
+      console.error('💡 Rules should allow public reads: allow read: if true;')
+    } else if ((error as any)?.code === 'unavailable') {
+      console.error('🌐 Firebase service unavailable. Check your internet connection.')
+    } else if ((error as any)?.message?.includes('quota')) {
+      console.error('📊 Firebase quota exceeded. Wait for quota reset or upgrade plan.')
+    }
+
     throw error
   }
 }
