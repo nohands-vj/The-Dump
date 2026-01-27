@@ -101,13 +101,13 @@ export function RelaxMode() {
 
     Matter.World.add(engine.world, [ground, leftWall, rightWall])
 
-    // Add mouse control with minimal constraint to prevent clumping
+    // Add mouse control with balanced constraint for smooth dragging
     const mouse = Matter.Mouse.create(canvasRef.current)
     const mouseConstraint = Matter.MouseConstraint.create(engine, {
       mouse: mouse,
       constraint: {
-        stiffness: 0.001,     // Extremely low stiffness - objects barely follow mouse
-        damping: 0.3,         // High damping for smooth, controlled movement
+        stiffness: 0.2,       // Higher stiffness - objects follow mouse smoothly
+        damping: 0.1,         // Lower damping for more responsive movement
         angularStiffness: 0,  // No angular stiffness prevents rotation-based clustering
         render: {
           visible: false
@@ -158,11 +158,11 @@ export function RelaxMode() {
       isDragging = false
     })
 
-    // Continuous separation force to prevent clumping (runs every frame)
+    // Gentle separation force to prevent clumping (runs every frame)
     Matter.Events.on(engine, 'beforeUpdate', () => {
       const bodies = objectsRef.current.map(o => o.body)
 
-      // Check all pairs of dynamic bodies and apply separation if too close
+      // Check all pairs of dynamic bodies and apply gentle separation if too close
       for (let i = 0; i < bodies.length; i++) {
         for (let j = i + 1; j < bodies.length; j++) {
           const bodyA = bodies[i]
@@ -174,13 +174,12 @@ export function RelaxMode() {
 
           if (dist > 0) {
             const radiusSum = (bodyA.circleRadius || 60) + (bodyB.circleRadius || 60)
-            const minDist = radiusSum + 5 // Keep 5px minimum gap
+            const minDist = radiusSum + 2 // Keep 2px minimum gap
 
-            // If objects are too close, push them apart
+            // If objects are too close, push them apart gently
             if (dist < minDist) {
-              // Stronger force when dragging, moderate when not
-              const dragMultiplier = isDragging ? 20 : 3
-              const force = 0.002 * dragMultiplier
+              // Very gentle force to prevent clumping without causing chaos
+              const force = 0.0005
 
               const fx = (dx / dist) * force
               const fy = (dy / dist) * force
@@ -293,14 +292,14 @@ export function RelaxMode() {
     const density = baseDensity * sizeConfig.densityMultiplier
     const randomSound = spaSound[Math.floor(Math.random() * spaSound.length)]
 
-    // Create circular body with anti-clumping physics
+    // Create circular body with balanced physics
     const body = Matter.Bodies.circle(x, y, sizeConfig.radius, {
       density: density,
-      restitution: 0.9,    // Very high bounciness to prevent clumping
-      friction: 0.01,      // Extremely low friction
-      frictionAir: 0.008,  // Low air resistance
-      frictionStatic: 0.05, // Very low static friction
-      slop: 1.0,           // Large collision tolerance to maintain spacing
+      restitution: 0.6,    // Moderate bounciness - enough bounce, not too chaotic
+      friction: 0.05,      // Low friction for smooth sliding
+      frictionAir: 0.01,   // Slight air resistance for natural movement
+      frictionStatic: 0.1, // Low static friction
+      slop: 0.5,           // Standard collision tolerance
       inertia: Infinity,   // Prevent rotation from affecting position
       render: {
         fillStyle: 'rgba(200, 200, 200, 0.1)', // Nearly invisible - image will show
