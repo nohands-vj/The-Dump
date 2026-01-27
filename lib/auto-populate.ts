@@ -115,17 +115,29 @@ function getNaturalPilePosition(globalIndex: number) {
 export async function autoPopulateFirestore(imageFileNames: string[]): Promise<number> {
   try {
     console.log('🔵 autoPopulateFirestore: Starting...')
+    console.log('🔵 Image filenames to process:', imageFileNames.length)
 
     // Check if Firebase is initialized
     if (!db) {
-      throw new Error('Firebase is not initialized. Please check your .env.local file.')
+      const errorMsg = 'Firebase is not initialized. Check that all NEXT_PUBLIC_FIREBASE_* environment variables are set.'
+      console.error('❌', errorMsg)
+      throw new Error(errorMsg)
     }
-    console.log('🔵 Firebase db is initialized')
+    console.log('✅ Firebase db is initialized')
 
-    // Get existing objects from Firestore
+    // Get existing objects from Firestore with timeout
     console.log('🔵 Fetching existing objects from Firestore...')
-    const existingObjects = await getDocs(collection(db, 'dumpObjects'))
-    console.log(`🔵 Found ${existingObjects.docs.length} existing objects in Firestore`)
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Firestore query timed out after 30 seconds. Check your internet connection and Firestore security rules.')), 30000)
+    )
+
+    const existingObjects = await Promise.race([
+      getDocs(collection(db, 'dumpObjects')),
+      timeout
+    ])
+
+    console.log(`✅ Found ${existingObjects.docs.length} existing objects in Firestore`)
     const existingUrls = new Set(existingObjects.docs.map(doc => doc.data().imageUrl))
 
     let addedCount = 0
@@ -180,16 +192,42 @@ export async function autoPopulateFirestore(imageFileNames: string[]): Promise<n
       }
 
       console.log(`🔵 Adding document to Firestore for ${name}...`)
-      await addDoc(collection(db, 'dumpObjects'), dumpObject)
-      addedCount++
 
-      console.log(`✅ Added to Firestore: ${name} (${fileName})`)
+      const addTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Timed out adding ${name} to Firestore`)), 15000)
+      )
+
+      await Promise.race([
+        addDoc(collection(db, 'dumpObjects'), dumpObject),
+        addTimeout
+      ])
+
+      addedCount++
+      console.log(`✅ Added to Firestore: ${name} (${fileName}) [${addedCount}/${imageFileNames.length - existingUrls.size}]`)
     }
 
     console.log(`🎉 Auto-populate complete! Added ${addedCount} new items`)
     return addedCount
   } catch (error) {
-    console.error('Failed to auto-populate Firestore:', error)
+    console.error('❌ Failed to auto-populate Firestore')
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as any)?.code,
+      stack: error instanceof Error ? error.stack : undefined,
+    })
+
+    // Provide helpful error messages
+    if ((error as any)?.code === 'permission-denied') {
+      throw new Error('Permission denied. Check Firestore security rules - they must allow write access.')
+    } else if ((error as any)?.code === 'unavailable') {
+      throw new Error('Firebase service unavailable. Check your internet connection.')
+    } else if ((error as any)?.message?.includes('quota')) {
+      throw new Error('Firebase quota exceeded. Wait for quota reset or upgrade your plan.')
+    } else if ((error as any)?.message?.includes('timed out')) {
+      throw new Error(error instanceof Error ? error.message : 'Operation timed out')
+    }
+
     throw error
   }
 }

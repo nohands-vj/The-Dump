@@ -28,7 +28,7 @@ export default function AdminPage() {
     }
 
     setIsProcessing(true)
-    setResult('⏳ Processing...')
+    setResult('⏳ Initializing...')
     console.log('🔵 Set processing state to true')
 
     try {
@@ -46,6 +46,8 @@ export default function AdminPage() {
         return
       }
 
+      setResult(`⏳ Processing ${fileNames.length} images... (Check browser console for progress)`)
+
       console.log('🔵 Calling autoPopulateFirestore...')
       const addedCount = await autoPopulateFirestore(fileNames)
       console.log(`🔵 autoPopulateFirestore completed. Added ${addedCount} items`)
@@ -53,11 +55,30 @@ export default function AdminPage() {
       if (addedCount === 0) {
         setResult(`✅ All ${fileNames.length} images already have Firestore entries!`)
       } else {
-        setResult(`🎉 Successfully added ${addedCount} new objects to Firestore!`)
+        setResult(`🎉 Successfully added ${addedCount} new objects to Firestore!\n\nRefresh the main page to see them.`)
       }
     } catch (error) {
       console.error('❌ Auto-populate failed:', error)
-      setResult(`❌ Failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+
+      // Extract helpful error message
+      let errorMsg = 'Unknown error'
+      if (error instanceof Error) {
+        errorMsg = error.message
+      } else if (typeof error === 'string') {
+        errorMsg = error
+      }
+
+      // Add troubleshooting hints
+      if (errorMsg.includes('permission') || errorMsg.includes('Permission')) {
+        errorMsg += '\n\n💡 Fix: Update Firestore security rules to allow writes:\n' +
+                    'allow write: if true;'
+      } else if (errorMsg.includes('timed out')) {
+        errorMsg += '\n\n💡 Check: Internet connection, Firebase quota limits, and Firestore rules'
+      } else if (errorMsg.includes('not initialized')) {
+        errorMsg += '\n\n💡 Fix: Ensure all Firebase environment variables are set in GitHub Secrets'
+      }
+
+      setResult(`❌ Failed: ${errorMsg}`)
     } finally {
       setIsProcessing(false)
       console.log('🔵 Set processing state to false')
@@ -109,7 +130,12 @@ export default function AdminPage() {
                 result.startsWith('⏳') ? 'bg-blue-500/20 text-blue-200' :
                 'bg-green-500/20 text-green-200'
               }`}>
-                <p className="font-semibold">{result}</p>
+                <p className="font-semibold whitespace-pre-wrap">{result}</p>
+                {isProcessing && (
+                  <p className="text-sm mt-2 text-white/60">
+                    💡 Open browser console (F12) to see detailed progress logs
+                  </p>
+                )}
               </div>
             )}
 
