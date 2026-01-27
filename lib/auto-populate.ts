@@ -114,21 +114,35 @@ function getNaturalPilePosition(globalIndex: number) {
  */
 export async function autoPopulateFirestore(imageFileNames: string[]): Promise<number> {
   try {
+    console.log('🔵 autoPopulateFirestore: Starting...')
+
+    // Check if Firebase is initialized
+    if (!db) {
+      throw new Error('Firebase is not initialized. Please check your .env.local file.')
+    }
+    console.log('🔵 Firebase db is initialized')
+
     // Get existing objects from Firestore
+    console.log('🔵 Fetching existing objects from Firestore...')
     const existingObjects = await getDocs(collection(db, 'dumpObjects'))
+    console.log(`🔵 Found ${existingObjects.docs.length} existing objects in Firestore`)
     const existingUrls = new Set(existingObjects.docs.map(doc => doc.data().imageUrl))
 
     let addedCount = 0
     const usedNames = new Set<string>()
 
+    console.log(`🔵 Processing ${imageFileNames.length} images...`)
     for (let i = 0; i < imageFileNames.length; i++) {
       const fileName = imageFileNames[i]
       const imageUrl = `/The-Dump/dump-objects/${fileName}`
 
       // Skip if already exists in Firestore
       if (existingUrls.has(imageUrl)) {
+        console.log(`⏭️ Skipping ${fileName} - already exists in Firestore`)
         continue
       }
+
+      console.log(`🔵 Processing new image: ${fileName}`)
 
       // Generate unique name
       let name: string
@@ -165,12 +179,14 @@ export async function autoPopulateFirestore(imageFileNames: string[]): Promise<n
         createdAt: new Date().toISOString(),
       }
 
+      console.log(`🔵 Adding document to Firestore for ${name}...`)
       await addDoc(collection(db, 'dumpObjects'), dumpObject)
       addedCount++
 
       console.log(`✅ Added to Firestore: ${name} (${fileName})`)
     }
 
+    console.log(`🎉 Auto-populate complete! Added ${addedCount} new items`)
     return addedCount
   } catch (error) {
     console.error('Failed to auto-populate Firestore:', error)

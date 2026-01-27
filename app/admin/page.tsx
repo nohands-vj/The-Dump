@@ -20,6 +20,8 @@ export default function AdminPage() {
   }, [])
 
   const handleAutoPopulate = async () => {
+    console.log('🔵 Button clicked - starting auto-populate process')
+
     if (!imageList.trim()) {
       setResult('❌ Please paste the list of image filenames first!')
       return
@@ -27,6 +29,7 @@ export default function AdminPage() {
 
     setIsProcessing(true)
     setResult('⏳ Processing...')
+    console.log('🔵 Set processing state to true')
 
     try {
       // Parse image filenames from the textarea (one per line)
@@ -35,13 +38,17 @@ export default function AdminPage() {
         .map(line => line.trim())
         .filter(line => line && /\.(png|jpg|jpeg)$/i.test(line))
 
+      console.log(`🔵 Found ${fileNames.length} valid image filenames`)
+
       if (fileNames.length === 0) {
         setResult('❌ No valid image filenames found. Make sure each line has a .png, .jpg, or .jpeg file.')
         setIsProcessing(false)
         return
       }
 
+      console.log('🔵 Calling autoPopulateFirestore...')
       const addedCount = await autoPopulateFirestore(fileNames)
+      console.log(`🔵 autoPopulateFirestore completed. Added ${addedCount} items`)
 
       if (addedCount === 0) {
         setResult(`✅ All ${fileNames.length} images already have Firestore entries!`)
@@ -49,10 +56,11 @@ export default function AdminPage() {
         setResult(`🎉 Successfully added ${addedCount} new objects to Firestore!`)
       }
     } catch (error) {
-      console.error('Auto-populate failed:', error)
+      console.error('❌ Auto-populate failed:', error)
       setResult(`❌ Failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsProcessing(false)
+      console.log('🔵 Set processing state to false')
     }
   }
 

@@ -101,14 +101,13 @@ export function RelaxMode() {
 
     Matter.World.add(engine.world, [ground, leftWall, rightWall])
 
-    // Add mouse control
+    // Add mouse control with balanced constraint for smooth dragging
     const mouse = Matter.Mouse.create(canvasRef.current)
     const mouseConstraint = Matter.MouseConstraint.create(engine, {
       mouse: mouse,
       constraint: {
-        stiffness: 0.02,      // Even lower stiffness to prevent pulling objects together
-        damping: 0.15,        // Increased damping for more control
-        length: 0.01,         // Very short constraint length to prevent dragging objects into clusters
+        stiffness: 0.2,       // Higher stiffness - objects follow mouse smoothly
+        damping: 0.1,         // Lower damping for more responsive movement
         angularStiffness: 0,  // No angular stiffness prevents rotation-based clustering
         render: {
           visible: false
@@ -150,7 +149,50 @@ export function RelaxMode() {
 
     window.addEventListener('resize', handleResize)
 
-    // Listen for collisions to play sounds and add slight repulsion
+    // Track mouse dragging state to add extra repulsion
+    let isDragging = false
+    Matter.Events.on(mouseConstraint, 'startdrag', () => {
+      isDragging = true
+    })
+    Matter.Events.on(mouseConstraint, 'enddrag', () => {
+      isDragging = false
+    })
+
+    // Gentle separation force to prevent clumping (runs every frame)
+    Matter.Events.on(engine, 'beforeUpdate', () => {
+      const bodies = objectsRef.current.map(o => o.body)
+
+      // Check all pairs of dynamic bodies and apply gentle separation if too close
+      for (let i = 0; i < bodies.length; i++) {
+        for (let j = i + 1; j < bodies.length; j++) {
+          const bodyA = bodies[i]
+          const bodyB = bodies[j]
+
+          const dx = bodyB.position.x - bodyA.position.x
+          const dy = bodyB.position.y - bodyA.position.y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+
+          if (dist > 0) {
+            const radiusSum = (bodyA.circleRadius || 60) + (bodyB.circleRadius || 60)
+            const minDist = radiusSum + 2 // Keep 2px minimum gap
+
+            // If objects are too close, push them apart gently
+            if (dist < minDist) {
+              // Very gentle force to prevent clumping without causing chaos
+              const force = 0.0005
+
+              const fx = (dx / dist) * force
+              const fy = (dy / dist) * force
+
+              Matter.Body.applyForce(bodyA, bodyA.position, { x: -fx, y: -fy })
+              Matter.Body.applyForce(bodyB, bodyB.position, { x: fx, y: fy })
+            }
+          }
+        }
+      }
+    })
+
+    // Listen for collisions to play sounds and add repulsion
     Matter.Events.on(engine, 'collisionStart', (event) => {
       event.pairs.forEach((pair) => {
         const obj = objectsRef.current.find(o => o.body === pair.bodyA || o.body === pair.bodyB)
@@ -165,28 +207,6 @@ export function RelaxMode() {
             obj.audioElement.volume = Math.min(speed / 15, 0.4)
             obj.audioElement.play().catch(() => {})
           }
-        }
-
-        // Add slight repulsion to prevent clumping
-        // Calculate direction from collision normal
-        const bodyA = pair.bodyA
-        const bodyB = pair.bodyB
-
-        // Skip if either body is static (walls/ground)
-        if (bodyA.isStatic || bodyB.isStatic) return
-
-        // Apply small separation force
-        const dx = bodyB.position.x - bodyA.position.x
-        const dy = bodyB.position.y - bodyA.position.y
-        const dist = Math.sqrt(dx * dx + dy * dy)
-
-        if (dist > 0) {
-          const force = 0.0005 // Small repulsion force
-          const fx = (dx / dist) * force
-          const fy = (dy / dist) * force
-
-          Matter.Body.applyForce(bodyA, bodyA.position, { x: -fx, y: -fy })
-          Matter.Body.applyForce(bodyB, bodyB.position, { x: fx, y: fy })
         }
       })
     })
@@ -272,14 +292,15 @@ export function RelaxMode() {
     const density = baseDensity * sizeConfig.densityMultiplier
     const randomSound = spaSound[Math.floor(Math.random() * spaSound.length)]
 
-    // Create circular body
+    // Create circular body with balanced physics
     const body = Matter.Bodies.circle(x, y, sizeConfig.radius, {
       density: density,
-      restitution: 0.8,   // Even higher bounciness to prevent clumping
-      friction: 0.05,     // Minimal friction so objects slide easily
-      frictionAir: 0.01,  // Slightly more air resistance to help objects settle
-      frictionStatic: 0.1, // Low static friction to prevent objects from sticking when at rest
-      slop: 0.5,          // Much larger collision tolerance to prevent tight clustering
+      restitution: 0.6,    // Moderate bounciness - enough bounce, not too chaotic
+      friction: 0.05,      // Low friction for smooth sliding
+      frictionAir: 0.01,   // Slight air resistance for natural movement
+      frictionStatic: 0.1, // Low static friction
+      slop: 0.5,           // Standard collision tolerance
+      inertia: Infinity,   // Prevent rotation from affecting position
       render: {
         fillStyle: 'rgba(200, 200, 200, 0.1)', // Nearly invisible - image will show
         strokeStyle: 'transparent',
