@@ -40,6 +40,7 @@ if (!isConfigValid) {
   })
 }
 
+
 // Initialize Firebase (only once)
 let app
 try {

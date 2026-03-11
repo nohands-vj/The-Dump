@@ -44,7 +44,29 @@ export default function Home() {
     const loadObjects = async () => {
       try {
         const firestoreObjects = await getAllDumpObjects()
-        setObjects(firestoreObjects)
+
+        // ALWAYS regenerate positions to ensure proper spacing
+        // Spread objects across the FULL width of the dump
+        const objectsWithPositions = firestoreObjects.map((obj, index) => {
+          const col = index % 10 // 10 objects per row
+          const row = Math.floor(index / 10)
+
+          return {
+            ...obj,
+            position: {
+              x: 300 + col * 350 + Math.random() * 150, // Wide horizontal spread
+              y: 150 + row * 120 + Math.random() * 60   // Vertical spacing within viewport
+            },
+            homePosition: {
+              x: 300 + col * 350 + Math.random() * 150,
+              y: 150 + row * 120 + Math.random() * 60
+            },
+            rotation: Math.random() * 360,
+            zIndex: 100 + index
+          }
+        })
+
+        setObjects(objectsWithPositions)
       } catch (error) {
         console.error('Failed to load objects from Firestore:', error)
         // Fallback to localStorage if Firebase fails
@@ -205,12 +227,6 @@ export default function Home() {
 
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-serif text-foreground tracking-tight">the dump</h1>
-          <button
-            onClick={() => setIsRelaxMode(!isRelaxMode)}
-            className="rounded-full bg-white/10 backdrop-blur-sm px-4 py-2 text-sm text-foreground transition-all hover:bg-white/20"
-          >
-            {isRelaxMode ? "normal mode" : "relax mode"}
-          </button>
         </div>
 
         <div className="flex items-center gap-4">
