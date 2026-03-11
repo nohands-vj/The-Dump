@@ -39,9 +39,9 @@ export function RelaxMode() {
     setMounted(true)
     if (!canvasRef.current || typeof window === 'undefined' || dumpItems.length === 0) return
 
-    // Create engine
+    // Create engine with reduced gravity to prevent excessive downward pressure
     const engine = Matter.Engine.create({
-      gravity: { x: 0, y: 1 }
+      gravity: { x: 0, y: 0.8 }  // Reduced from 1 to 0.8
     })
     engineRef.current = engine
 
@@ -101,13 +101,13 @@ export function RelaxMode() {
 
     Matter.World.add(engine.world, [ground, leftWall, rightWall])
 
-    // Add mouse control with balanced constraint for smooth dragging
+    // Add mouse control with stronger damping to prevent clustering during drag
     const mouse = Matter.Mouse.create(canvasRef.current)
     const mouseConstraint = Matter.MouseConstraint.create(engine, {
       mouse: mouse,
       constraint: {
-        stiffness: 0.2,       // Higher stiffness - objects follow mouse smoothly
-        damping: 0.1,         // Lower damping for more responsive movement
+        stiffness: 0.15,      // Slightly reduced stiffness for less aggressive dragging
+        damping: 0.3,         // Increased damping to slow down dragged objects
         angularStiffness: 0,  // No angular stiffness prevents rotation-based clustering
         render: {
           visible: false
@@ -125,14 +125,24 @@ export function RelaxMode() {
     Matter.Runner.run(runner, engine)
     Matter.Render.run(render)
 
-    // Add random dump objects on load with spread
+    // Add random dump objects on load with wide spread to prevent initial clumping
     const numInitialObjects = Math.min(12, dumpItems.length)
+    const cols = 4 // Grid layout for initial placement
+    const rows = Math.ceil(numInitialObjects / cols)
+
     for (let i = 0; i < numInitialObjects; i++) {
       const randomItem = dumpItems[Math.floor(Math.random() * dumpItems.length)]
-      // Spread objects across the width with random positions
-      const x = window.innerWidth * (0.15 + Math.random() * 0.7)
-      // Stagger heights with more variation
-      const y = 50 + i * 60 + (Math.random() - 0.5) * 40
+
+      // Grid-based placement with randomization for natural look
+      const col = i % cols
+      const row = Math.floor(i / cols)
+
+      const cellWidth = window.innerWidth * 0.7 / cols
+      const cellHeight = 100
+
+      const x = window.innerWidth * 0.15 + col * cellWidth + cellWidth / 2 + (Math.random() - 0.5) * 80
+      const y = 50 + row * cellHeight + (Math.random() - 0.5) * 40
+
       addDumpObject(x, y, randomItem)
     }
 
@@ -158,11 +168,11 @@ export function RelaxMode() {
       isDragging = false
     })
 
-    // Gentle separation force to prevent clumping (runs every frame)
+    // Strong separation force to prevent clumping (runs every frame)
     Matter.Events.on(engine, 'beforeUpdate', () => {
       const bodies = objectsRef.current.map(o => o.body)
 
-      // Check all pairs of dynamic bodies and apply gentle separation if too close
+      // Check all pairs of dynamic bodies and apply separation force
       for (let i = 0; i < bodies.length; i++) {
         for (let j = i + 1; j < bodies.length; j++) {
           const bodyA = bodies[i]
@@ -174,15 +184,35 @@ export function RelaxMode() {
 
           if (dist > 0) {
             const radiusSum = (bodyA.circleRadius || 60) + (bodyB.circleRadius || 60)
-            const minDist = radiusSum + 2 // Keep 2px minimum gap
 
-            // If objects are too close, push them apart gently
-            if (dist < minDist) {
-              // Very gentle force to prevent clumping without causing chaos
-              const force = 0.0005
+            // Large comfort zone - start repelling much earlier (3x radius distance)
+            const comfortZone = radiusSum * 1.5
 
-              const fx = (dx / dist) * force
-              const fy = (dy / dist) * force
+            // If objects are in comfort zone, apply separation force
+            if (dist < comfortZone) {
+              // Calculate force strength based on how close they are
+              // Closer = stronger force (inverse square relationship)
+              const overlap = comfortZone - dist
+              const forceStrength = 0.008 * (overlap / comfortZone)
+
+              // Apply velocity damping when objects are too close
+              // This prevents them from bouncing back and forth
+              const velocityA = Matter.Body.getVelocity(bodyA)
+              const velocityB = Matter.Body.getVelocity(bodyB)
+
+              // Dampen velocities to reduce oscillation
+              Matter.Body.setVelocity(bodyA, {
+                x: velocityA.x * 0.95,
+                y: velocityA.y * 0.95
+              })
+              Matter.Body.setVelocity(bodyB, {
+                x: velocityB.x * 0.95,
+                y: velocityB.y * 0.95
+              })
+
+              // Apply repulsion force
+              const fx = (dx / dist) * forceStrength
+              const fy = (dy / dist) * forceStrength
 
               Matter.Body.applyForce(bodyA, bodyA.position, { x: -fx, y: -fy })
               Matter.Body.applyForce(bodyB, bodyB.position, { x: fx, y: fy })
@@ -292,13 +322,13 @@ export function RelaxMode() {
     const density = baseDensity * sizeConfig.densityMultiplier
     const randomSound = spaSound[Math.floor(Math.random() * spaSound.length)]
 
-    // Create circular body with balanced physics
+    // Create circular body with anti-clumping physics
     const body = Matter.Bodies.circle(x, y, sizeConfig.radius, {
       density: density,
-      restitution: 0.6,    // Moderate bounciness - enough bounce, not too chaotic
-      friction: 0.05,      // Low friction for smooth sliding
-      frictionAir: 0.01,   // Slight air resistance for natural movement
-      frictionStatic: 0.1, // Low static friction
+      restitution: 0.5,    // Reduced bounciness to prevent chaotic bouncing into each other
+      friction: 0.01,      // Very low friction to help objects slide past each other
+      frictionAir: 0.02,   // Increased air resistance to slow down objects naturally
+      frictionStatic: 0.05, // Reduced static friction to prevent sticking
       slop: 0.5,           // Standard collision tolerance
       inertia: Infinity,   // Prevent rotation from affecting position
       render: {
