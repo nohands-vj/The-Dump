@@ -73,6 +73,18 @@ export function DumpObject({ object, onDoubleClick, onUpdatePosition, onDragStar
     const newX = e.clientX - containerRect.left + scrollLeft - offsetRef.current.x
     const newY = e.clientY - containerRect.top - offsetRef.current.y
 
+    console.log(`[${objectDataRef.current.id.slice(0, 8)}] Moving:`, {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      containerLeft: containerRect.left,
+      containerTop: containerRect.top,
+      scrollLeft,
+      offsetX: offsetRef.current.x,
+      offsetY: offsetRef.current.y,
+      newX,
+      newY
+    })
+
     dragPosition.current = { x: newX, y: newY }
 
     if (objectRef.current) {
@@ -131,12 +143,24 @@ export function DumpObject({ object, onDoubleClick, onUpdatePosition, onDragStar
     const objectRect = objectRef.current?.getBoundingClientRect()
     const containerRect = containerRef.current?.getBoundingClientRect()
 
+    console.log(`[${object.id.slice(0, 8)}] MouseDown:`, {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      objectLeft: objectRect?.left,
+      objectTop: objectRect?.top,
+      objectPosX: object.position.x,
+      objectPosY: object.position.y,
+      containerLeft: containerRect?.left,
+      containerTop: containerRect?.top
+    })
+
     if (objectRect && containerRect) {
       // Store directly in a ref — no state update, no stale closure
       offsetRef.current = {
         x: e.clientX - objectRect.left,
         y: e.clientY - objectRect.top,
       }
+      console.log(`[${object.id.slice(0, 8)}] Offset calculated:`, offsetRef.current)
     }
     dragPosition.current = { x: object.position.x, y: object.position.y }
 
