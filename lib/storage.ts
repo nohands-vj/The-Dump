@@ -130,7 +130,13 @@ export async function getAllDumpObjects(): Promise<DumpItem[]> {
     querySnapshot.forEach((doc) => {
       const data = doc.data()
       console.log(`📄 Document ${doc.id}:`, Object.keys(data))
-      objects.push({ ...data, firestoreId: doc.id } as DumpItem)
+      // CRITICAL: Set both id and firestoreId to ensure object identity works correctly
+      // The id field is used for React keys and position updates
+      objects.push({
+        ...data,
+        id: data.id || doc.id, // Use existing id from data, or fallback to Firestore doc id
+        firestoreId: doc.id
+      } as DumpItem)
     })
 
     console.log(`✅ Successfully loaded ${objects.length} dump objects from Firestore`)

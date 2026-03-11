@@ -175,7 +175,11 @@ export async function autoPopulateFirestore(imageFileNames: string[]): Promise<n
         day: "numeric",
       })
 
+      // Generate a unique ID for this object
+      const uniqueId = `dump-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
       const dumpObject = {
+        id: uniqueId, // CRITICAL: Include id field for object identity
         imageUrl,
         name,
         size: "large",

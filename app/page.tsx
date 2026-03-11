@@ -51,16 +51,12 @@ export default function Home() {
           const col = index % 10 // 10 objects per row
           const row = Math.floor(index / 10)
 
-          const position = {
-            x: 300 + col * 350 + Math.random() * 150, // Wide horizontal spread
-            y: 150 + row * 120 + Math.random() * 60   // Vertical spacing within viewport
-          }
-
-          console.log(`Object ${index} (${obj.id?.slice(0, 8)}): col=${col}, row=${row}, position=`, position)
-
           return {
             ...obj,
-            position,
+            position: {
+              x: 300 + col * 350 + Math.random() * 150, // Wide horizontal spread
+              y: 150 + row * 120 + Math.random() * 60   // Vertical spacing within viewport
+            },
             homePosition: {
               x: 300 + col * 350 + Math.random() * 150,
               y: 150 + row * 120 + Math.random() * 60
@@ -69,9 +65,6 @@ export default function Home() {
             zIndex: 100 + index
           }
         })
-
-        console.log(`Loaded ${objectsWithPositions.length} objects with positions:`,
-          objectsWithPositions.map(o => ({ id: o.id?.slice(0, 8), pos: o.position })))
 
         setObjects(objectsWithPositions)
       } catch (error) {
@@ -167,20 +160,9 @@ export default function Home() {
   }
 
   const handleUpdatePosition = async (id: string, position: { x: number; y: number }, rotation: number) => {
-    console.log(`handleUpdatePosition called:`, { id: id.slice(0, 8), position, rotation })
-
     // Just update local state - no need to save positions to Firestore
     // Objects are already permanently stored in Firestore
-    setObjects((prev) => {
-      const updated = prev.map((obj) => {
-        const shouldUpdate = obj.id === id
-        if (shouldUpdate) {
-          console.log(`  Updating object ${obj.id.slice(0, 8)} from`, obj.position, `to`, position)
-        }
-        return shouldUpdate ? { ...obj, position, rotation } : obj
-      })
-      return updated
-    })
+    setObjects((prev) => prev.map((obj) => (obj.id === id ? { ...obj, position, rotation } : obj)))
   }
 
   const handleDragStart = (id: string) => {
