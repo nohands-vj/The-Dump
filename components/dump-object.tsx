@@ -8,19 +8,37 @@ interface DumpObjectProps {
   object: DumpItem
   onDoubleClick: (object: DumpItem) => void
   onUpdatePosition: (id: string, position: { x: number; y: number }, rotation: number) => void
+  onDragStart?: (id: string) => void
+  onDragEnd?: (id: string) => void
   containerRef: React.RefObject<HTMLDivElement>
 }
 
-export function DumpObject({ object, onDoubleClick, onUpdatePosition, containerRef }: DumpObjectProps) {
+export function DumpObject({ object, onDoubleClick, onUpdatePosition, onDragStart, onDragEnd, containerRef }: DumpObjectProps) {
   const objectRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
-  const [offset, setOffset] = useState({ x: 0, y: 0 })
+
+  // Use a ref for offset so event handlers always read the latest value,
+  // avoiding the stale closure bug that caused objects to jump to the mouse position.
+  const offsetRef = useRef({ x: 0, y: 0 })
   const dragStartTime = useRef(0)
   const dragPosition = useRef({ x: object.position.x, y: object.position.y })
   const dragThreshold = useRef(false)
   const startPos = useRef({ x: 0, y: 0 })
-  const isReturning = useRef(false)
+
+  // Keep latest callbacks and object accessible inside stable event handler refs
+  const onDoubleClickRef = useRef(onDoubleClick)
+  const onUpdatePositionRef = useRef(onUpdatePosition)
+  const onDragStartRef = useRef(onDragStart)
+  const onDragEndRef = useRef(onDragEnd)
+  const objectDataRef = useRef(object)
+  useEffect(() => {
+    onDoubleClickRef.current = onDoubleClick
+    onUpdatePositionRef.current = onUpdatePosition
+    onDragStartRef.current = onDragStart
+    onDragEndRef.current = onDragEnd
+    objectDataRef.current = object
+  })
 
   const sizeMap = {
     small: 71,
@@ -30,29 +48,10 @@ export function DumpObject({ object, onDoubleClick, onUpdatePosition, containerR
 
   const size = sizeMap[object.size]
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault()
-    dragStartTime.current = Date.now()
-    dragThreshold.current = false
-    startPos.current = { x: e.clientX, y: e.clientY }
-    isReturning.current = false
-
-    const objectRect = objectRef.current?.getBoundingClientRect()
-    const containerRect = containerRef.current?.getBoundingClientRect()
-
-    if (objectRect && containerRect) {
-      setOffset({
-        x: e.clientX - objectRect.left,
-        y: e.clientY - objectRect.top,
-      })
-    }
-    dragPosition.current = { x: object.position.x, y: object.position.y }
-
-    window.addEventListener("mousemove", handleMouseMove)
-    window.addEventListener("mouseup", handleMouseUp)
-  }
-
-  const handleMouseMove = (e: MouseEvent) => {
+  // Stable handler refs — created once, always read latest data via other refs.
+  // This prevents the stale closure issue where window event listeners would use
+  // old state values from the render in which they were registered.
+  const handleMouseMove = useRef((e: MouseEvent) => {
     if (!dragThreshold.current) {
       const deltaX = Math.abs(e.clientX - startPos.current.x)
       const deltaY = Math.abs(e.clientY - startPos.current.y)
@@ -60,6 +59,7 @@ export function DumpObject({ object, onDoubleClick, onUpdatePosition, containerR
       if (deltaX > 3 || deltaY > 3) {
         dragThreshold.current = true
         setIsDragging(true)
+        onDragStartRef.current?.(objectDataRef.current.id)
       } else {
         return
       }
@@ -68,8 +68,10 @@ export function DumpObject({ object, onDoubleClick, onUpdatePosition, containerR
     if (!containerRef.current) return
 
     const containerRect = containerRef.current.getBoundingClientRect()
-    const newX = e.clientX - containerRect.left - offset.x
-    const newY = e.clientY - containerRect.top - offset.y
+    // Add scrollLeft so positions are in container coordinates, not viewport coordinates
+    const scrollLeft = containerRef.current.scrollLeft
+    const newX = e.clientX - containerRect.left + scrollLeft - offsetRef.current.x
+    const newY = e.clientY - containerRect.top - offsetRef.current.y
 
     dragPosition.current = { x: newX, y: newY }
 
@@ -77,26 +79,55 @@ export function DumpObject({ object, onDoubleClick, onUpdatePosition, containerR
       objectRef.current.style.left = `${newX}px`
       objectRef.current.style.top = `${newY}px`
     }
-  }
+  }).current
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useRef(() => {
     window.removeEventListener("mousemove", handleMouseMove)
-    window.removeEventListener("mouseup", handleMouseUp)
+    window.removeEventListener("mouseup", handleMouseUp.current)
+
+    const obj = objectDataRef.current
 
     if (dragThreshold.current) {
       const dragDuration = Date.now() - dragStartTime.current
 
       if (dragDuration < 200) {
-        onDoubleClick(object)
+        // Quick flick: treat as a click, don't save the position
+        setIsDragging(false)
+        onDoubleClickRef.current(obj)
       } else {
         setIsDragging(false)
-        onUpdatePosition(object.id, dragPosition.current, object.rotation)
+        onDragEndRef.current?.(obj.id)
+        onUpdatePositionRef.current(obj.id, dragPosition.current, obj.rotation)
       }
     } else {
-      onDoubleClick(object)
+      // No movement at all: plain click
+      setIsDragging(false)
+      onDoubleClickRef.current(obj)
     }
 
     dragThreshold.current = false
+  }).current
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    dragStartTime.current = Date.now()
+    dragThreshold.current = false
+    startPos.current = { x: e.clientX, y: e.clientY }
+
+    const objectRect = objectRef.current?.getBoundingClientRect()
+    const containerRect = containerRef.current?.getBoundingClientRect()
+
+    if (objectRect && containerRect) {
+      // Store directly in a ref — no state update, no stale closure
+      offsetRef.current = {
+        x: e.clientX - objectRect.left,
+        y: e.clientY - objectRect.top,
+      }
+    }
+    dragPosition.current = { x: object.position.x, y: object.position.y }
+
+    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mouseup", handleMouseUp)
   }
 
   useEffect(() => {
@@ -104,10 +135,10 @@ export function DumpObject({ object, onDoubleClick, onUpdatePosition, containerR
       window.removeEventListener("mousemove", handleMouseMove)
       window.removeEventListener("mouseup", handleMouseUp)
     }
-  }, [])
+  }, [handleMouseMove, handleMouseUp])
 
   useEffect(() => {
-    if (objectRef.current && !isDragging && !isReturning.current) {
+    if (objectRef.current && !isDragging) {
       objectRef.current.style.left = `${object.position.x}px`
       objectRef.current.style.top = `${object.position.y}px`
       objectRef.current.style.transform = `rotate(${object.rotation}deg)`
