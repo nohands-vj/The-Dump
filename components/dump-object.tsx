@@ -81,9 +81,15 @@ export function DumpObject({ object, onDoubleClick, onUpdatePosition, onDragStar
     }
   }).current
 
-  const handleMouseUp = useRef(() => {
-    window.removeEventListener("mousemove", handleMouseMove)
-    window.removeEventListener("mouseup", handleMouseUp.current)
+  // Store the mouseup handler separately to ensure proper cleanup
+  const handleMouseUpFn = useRef<((e: MouseEvent) => void) | null>(null)
+
+  const handleMouseUp = () => {
+    if (handleMouseUpFn.current) {
+      window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("mouseup", handleMouseUpFn.current)
+      handleMouseUpFn.current = null
+    }
 
     const obj = objectDataRef.current
 
@@ -106,10 +112,18 @@ export function DumpObject({ object, onDoubleClick, onUpdatePosition, onDragStar
     }
 
     dragThreshold.current = false
-  }).current
+  }
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault()
+    e.stopPropagation() // Prevent event from bubbling to other objects
+
+    // Clean up any existing listeners before adding new ones
+    if (handleMouseUpFn.current) {
+      window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("mouseup", handleMouseUpFn.current)
+    }
+
     dragStartTime.current = Date.now()
     dragThreshold.current = false
     startPos.current = { x: e.clientX, y: e.clientY }
@@ -126,16 +140,22 @@ export function DumpObject({ object, onDoubleClick, onUpdatePosition, onDragStar
     }
     dragPosition.current = { x: object.position.x, y: object.position.y }
 
+    // Store the handler reference so we can remove it later
+    handleMouseUpFn.current = handleMouseUp as any
     window.addEventListener("mousemove", handleMouseMove)
     window.addEventListener("mouseup", handleMouseUp)
   }
 
   useEffect(() => {
     return () => {
+      // Clean up event listeners on unmount
       window.removeEventListener("mousemove", handleMouseMove)
-      window.removeEventListener("mouseup", handleMouseUp)
+      if (handleMouseUpFn.current) {
+        window.removeEventListener("mouseup", handleMouseUpFn.current)
+        handleMouseUpFn.current = null
+      }
     }
-  }, [handleMouseMove, handleMouseUp])
+  }, [handleMouseMove])
 
   useEffect(() => {
     if (objectRef.current && !isDragging) {
