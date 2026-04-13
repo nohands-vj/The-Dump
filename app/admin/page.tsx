@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 
 /**
  * Admin page for managing dump objects
- * Visit: https://nohands-vj.github.io/The-Dump/admin
+ * Production: https://nohands-vj.github.io/The-Dump/admin
+ * Local Dev: http://localhost:3000/admin
  */
 export default function AdminPage() {
   const [isProcessing, setIsProcessing] = useState(false)
@@ -90,7 +91,15 @@ export default function AdminPage() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl">
           <h1 className="text-4xl font-serif text-white mb-2">The Dump Admin</h1>
-          <p className="text-white/60 mb-8">Auto-populate Firestore with your dump objects</p>
+          <p className="text-white/60 mb-4">Auto-populate Firestore with your dump objects</p>
+
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-8">
+            <p className="text-blue-200 text-sm font-semibold mb-2">📍 Admin Panel URLs:</p>
+            <ul className="space-y-1 text-blue-100/80 text-sm font-mono">
+              <li>Production: https://nohands-vj.github.io/The-Dump/admin</li>
+              <li>Local Dev: http://localhost:3000/admin</li>
+            </ul>
+          </div>
 
           <div className="space-y-6">
             <div>
